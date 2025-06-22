@@ -31,4 +31,4 @@ jobs:
         uses: atlassian/gajira-transition@v3
         with:
           issue: ${{ env.JIRA_KEY }}
-          transition: Done  # 또는 Jira 설정에 맞는 상태 이름 (예: 완료, 완료됨, 해결 등)
+          transition: 완료  # 또는 Jira 설정에 맞는 상태 이름 (예: 완료, 완료됨, 해결 등)
