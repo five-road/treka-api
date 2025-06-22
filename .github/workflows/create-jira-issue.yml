@@ -1,11 +1,8 @@
 name: Create Jira issue
-
-
-permissions:          # ← 이 블록을 꼭 넣어 주세요
-  contents: write     # 브랜치 push
-  issues: write       # 제목 수정·코멘트
-  pull-requests: write  # (필요하면) PR 작업도
-
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
 
 on:
   issues:
@@ -14,7 +11,6 @@ on:
 jobs:
   create-issue:
     runs-on: ubuntu-latest
-
     steps:
       # 1. Jira 로그인
       - name: Login
@@ -24,12 +20,13 @@ jobs:
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
 
-      # 2. (선택) Issue Parser – 브랜치명만 추출
+      # 2. Issue Parser (선택사항)
       - name: Issue Parser
         id: issue-parser
         uses: stefanbuck/github-issue-praser@v3
         with:
           template-path: .github/ISSUE_TEMPLATE/issue-form.yml
+        continue-on-error: true  # 파싱 실패해도 계속 진행
 
       # 3. Markdown → Jira
       - name: Convert markdown to Jira Syntax
@@ -39,11 +36,10 @@ jobs:
           input-text: |
             ### Github Issue Link
             - ${{ github.event.issue.html_url }}
-
             ${{ github.event.issue.body }}
           mode: md2jira
 
-      # 4. Jira Task 생성 (parent 없음)
+      # 4. Jira Task 생성
       - name: Create Issue
         id: create
         uses: atlassian/gajira-create@v3
@@ -56,19 +52,42 @@ jobs:
       - name: Log created issue
         run: echo "Jira Issue ${{ steps.create.outputs.issue }} was created"
 
-      # 5. 브랜치 생성 / 푸시
+      # 5. 브랜치명 생성 로직 개선
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: dev         # 필요 브랜치로 변경
+          ref: dev
 
       - name: Create branch with Ticket number
         run: |
           ISSUE_NUMBER="${{ steps.create.outputs.issue }}"
-          ISSUE_TITLE="${{ steps.issue-parser.outputs.issueparser_branch }}"
-          BRANCH_NAME="${ISSUE_NUMBER}-$(echo ${ISSUE_TITLE} | tr ' ' '-')"
-          git checkout -b "${BRANCH_NAME}"
-          git push origin "${BRANCH_NAME}"
+          
+          # Issue Parser에서 브랜치명 가져오기 (있는 경우)
+          PARSED_BRANCH="${{ steps.issue-parser.outputs.issueparser_branch }}"
+          
+          # 브랜치명 결정 로직
+          if [ -n "$PARSED_BRANCH" ] && [ "$PARSED_BRANCH" != "" ]; then
+            # Issue Parser에서 브랜치명을 가져온 경우
+            BRANCH_SUFFIX=$(echo "$PARSED_BRANCH" | sed 's/[^a-zA-Z0-9가-힣]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g')
+          else
+            # Issue Parser 실패 시 GitHub 이슈 제목 사용
+            ISSUE_TITLE="${{ github.event.issue.title }}"
+            BRANCH_SUFFIX=$(echo "$ISSUE_TITLE" | sed 's/[^a-zA-Z0-9가-힣]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g' | cut -c1-50)
+          fi
+          
+          # 최종 브랜치명 생성
+          if [ -n "$BRANCH_SUFFIX" ] && [ "$BRANCH_SUFFIX" != "" ]; then
+            BRANCH_NAME="${ISSUE_NUMBER}-${BRANCH_SUFFIX}"
+          else
+            BRANCH_NAME="${ISSUE_NUMBER}"
+          fi
+          
+          echo "Creating branch: $BRANCH_NAME"
+          git checkout -b "$BRANCH_NAME"
+          git push origin "$BRANCH_NAME"
+          
+          # 환경 변수로 브랜치명 저장 (다음 스텝에서 사용 가능)
+          echo "CREATED_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
 
       # 6. GitHub 이슈 제목 업데이트
       - name: Update issue title
@@ -78,11 +97,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: '[${{ steps.create.outputs.issue }}] ${{ github.event.issue.title }}'
 
-      # 7. 코멘트로 Jira 링크 달기
+      # 7. 코멘트로 Jira 링크와 브랜치 정보 추가
       - name: Add comment with Jira issue link
         uses: actions-cool/issues-helper@v3
         with:
           actions: create-comment
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.issue.number }}
-          body: 'Jira Issue Created: [${{ steps.create.outputs.issue }}](${{ secrets.JIRA_BASE_URL }}/browse/${{ steps.create.outputs.issue }})'
+          body: |
+            🎫 **Jira Issue Created**: [${{ steps.create.outputs.issue }}](${{ secrets.JIRA_BASE_URL }}/browse/${{ steps.create.outputs.issue }})
+            
+            🌿 **Branch Created**: `${{ env.CREATED_BRANCH }}`
