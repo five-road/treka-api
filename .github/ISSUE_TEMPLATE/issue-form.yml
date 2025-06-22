@@ -8,9 +8,9 @@ body:
     attributes:
       label: '🎟️ 상위 작업 (Ticket Number)'
       description: '상위 작업의 Ticket Number를 기입해주세요 (선택사항)'
-      placeholder: 'PRJ-00 (없으면 비워두세요)'
+      placeholder: 'TREKA-00 (없으면 비워두세요)'
     validations:
-      required: false  # 선택사항으로 변경
+      required: false
       
   - type: input
     id: branch
@@ -21,7 +21,7 @@ body:
     validations:
       required: true
       
-  - type: input
+  - type: textarea
     id: description
     attributes:
       label: '📝 상세 내용(Description)'
