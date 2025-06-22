@@ -71,13 +71,13 @@ jobs:
             echo "issue=${{ steps.create-without-parent.outputs.issue }}" >> $GITHUB_OUTPUT
           fi
 
-      # 5. 브랜치명 생성 로직 개선
+    # 5. 브랜치명 생성 로직 개선
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           ref: dev
 
-     - name: Create branch with Ticket number
+      - name: Create branch with Ticket number
         run: |
           ISSUE_NUMBER="${{ steps.create.outputs.issue }}"
           
