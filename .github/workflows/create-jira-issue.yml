@@ -28,6 +28,17 @@ jobs:
           template-path: .github/ISSUE_TEMPLATE/issue-form.yml
         continue-on-error: true
 
+      # 2-1. Issue Parser 결과 확인
+      - name: Check Issue Parser Result
+        run: |
+          if [ "${{ steps.issue-parser.outcome }}" = "success" ]; then
+            echo "Issue parser succeeded"
+            echo "PARSER_SUCCESS=true" >> $GITHUB_ENV
+          else
+            echo "Issue parser failed - will use manual parsing"
+            echo "PARSER_SUCCESS=false" >> $GITHUB_ENV
+          fi
+
       # 3. Markdown → Jira
       - name: Convert markdown to Jira Syntax
         id: md2jira
@@ -42,18 +53,18 @@ jobs:
       # 4. Jira Task 생성 (상위 작업 조건부 처리)
       - name: Create Issue with Parent
         id: create-with-parent
-        if: steps.issue-parser.outputs.issueparser_parentKey != ''
+        if: env.PARSER_SUCCESS == 'true' && steps.issue-parser.outputs.issueparser_parentKey != '' || env.PARSER_SUCCESS == 'false' && steps.manual-parser.outputs.manual_parentKey != ''
         uses: atlassian/gajira-create@v3
         with:
           project: TREKA
           issuetype: Task
           summary: '${{ github.event.issue.title }}'
           description: '${{ steps.md2jira.outputs.output-text }}'
-          parent: '${{ steps.issue-parser.outputs.issueparser_parentKey }}'
+          parent: '${{ env.PARSER_SUCCESS == ''true'' && steps.issue-parser.outputs.issueparser_parentKey || steps.manual-parser.outputs.manual_parentKey }}'
 
       - name: Create Issue without Parent
         id: create-without-parent
-        if: steps.issue-parser.outputs.issueparser_parentKey == ''
+        if: env.PARSER_SUCCESS == 'true' && steps.issue-parser.outputs.issueparser_parentKey == '' || env.PARSER_SUCCESS == 'false' && steps.manual-parser.outputs.manual_parentKey == ''
         uses: atlassian/gajira-create@v3
         with:
           project: TREKA
@@ -87,6 +98,44 @@ jobs:
         with:
           ref: dev
 
+      - name: Debug Issue Parser Outputs
+        run: |
+          echo "=== Issue Parser 전체 출력 디버깅 ==="
+          echo "Parser Success: ${{ env.PARSER_SUCCESS }}"
+          echo "issueparser_branch: '${{ steps.issue-parser.outputs.issueparser_branch }}'"
+          echo "issueparser_description: '${{ steps.issue-parser.outputs.issueparser_description }}'"
+          echo "issueparser_parentKey: '${{ steps.issue-parser.outputs.issueparser_parentKey }}'"
+          echo "issueparser_tasks: '${{ steps.issue-parser.outputs.issueparser_tasks }}'"
+          echo "GitHub Issue Title: '${{ github.event.issue.title }}'"
+          echo "GitHub Issue Body: '${{ github.event.issue.body }}'"
+          echo "=================================="
+
+      - name: Manual Parse Issue Body
+        id: manual-parser
+        run: |
+          # Issue Form이 실패한 경우 수동으로 이슈 본문 파싱
+          ISSUE_BODY="${{ github.event.issue.body }}"
+          
+          echo "Parsing issue body manually..."
+          
+          # 상위 작업 추출 (🎟️ 상위 작업 섹션에서)
+          PARENT_KEY=$(echo "$ISSUE_BODY" | grep -A 2 "상위 작업" | tail -1 | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+          if [ "$PARENT_KEY" = "_No response_" ] || [ -z "$PARENT_KEY" ]; then
+            PARENT_KEY=""
+          fi
+          
+          # 브랜치명 추출 (🌳 브랜치명 섹션에서)
+          BRANCH_NAME=$(echo "$ISSUE_BODY" | grep -A 2 "브랜치명" | tail -1 | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+          if [ "$BRANCH_NAME" = "_No response_" ] || [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME=""
+          fi
+          
+          echo "Manually parsed parent key: '$PARENT_KEY'"
+          echo "Manually parsed branch name: '$BRANCH_NAME'"
+          
+          echo "manual_parentKey=$PARENT_KEY" >> $GITHUB_OUTPUT
+          echo "manual_branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
       - name: Create branch with Ticket number
         run: |
           ISSUE_NUMBER="${{ steps.set-issue.outputs.issue }}"
@@ -99,9 +148,21 @@ jobs:
             exit 1
           fi
           
-          # Issue Parser에서 브랜치명 가져오기
-          PARSED_BRANCH="${{ steps.issue-parser.outputs.issueparser_branch }}"
+          # Issue Parser에서 브랜치명 가져오기 (여러 형식 시도)
+          PARSED_BRANCH=""
+          
+          if [ "${{ env.PARSER_SUCCESS }}" = "true" ]; then
+            echo "Using Issue Parser results"
+            PARSED_BRANCH="${{ steps.issue-parser.outputs.issueparser_branch }}"
+            PARENT_KEY="${{ steps.issue-parser.outputs.issueparser_parentKey }}"
+          else
+            echo "Using Manual Parser results"
+            PARSED_BRANCH="${{ steps.manual-parser.outputs.manual_branch }}"
+            PARENT_KEY="${{ steps.manual-parser.outputs.manual_parentKey }}"
+          fi
+          
           echo "PARSED_BRANCH: '$PARSED_BRANCH'"
+          echo "PARENT_KEY: '$PARENT_KEY'"
           
           # 브랜치명 결정 및 정리
           if [ -n "$PARSED_BRANCH" ] && [ "$PARSED_BRANCH" != "" ] && [ "$PARSED_BRANCH" != "null" ]; then
