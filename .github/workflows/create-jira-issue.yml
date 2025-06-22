@@ -1,5 +1,11 @@
 name: Create Jira issue
 
+
+permissions:          # ✅ 꼭 추가
+  contents: write
+  issues: read
+
+
 on:
   issues:
     types: [opened]
