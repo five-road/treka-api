@@ -23,10 +23,10 @@ jobs:
       # 2. Issue Parser (선택사항)
       - name: Issue Parser
         id: issue-parser
-        uses: stefanbuck/github-issue-praser@v3
+        uses: stefanbuck/github-issue-parser@v3
         with:
           template-path: .github/ISSUE_TEMPLATE/issue-form.yml
-        continue-on-error: true  # 파싱 실패해도 계속 진행
+        continue-on-error: true
 
       # 3. Markdown → Jira
       - name: Convert markdown to Jira Syntax
@@ -39,7 +39,7 @@ jobs:
             ${{ github.event.issue.body }}
           mode: md2jira
 
-    # 4. Jira Task 생성 (상위 작업 조건부 처리)
+      # 4. Jira Task 생성 (상위 작업 조건부 처리)
       - name: Create Issue with Parent
         id: create-with-parent
         if: steps.issue-parser.outputs.issueparser_parentKey != ''
@@ -61,17 +61,27 @@ jobs:
           summary: '${{ github.event.issue.title }}'
           description: '${{ steps.md2jira.outputs.output-text }}'
 
-      # 생성된 이슈 번호 통합
+      # 5. 생성된 이슈 번호 통합 및 검증
       - name: Set Issue Number
         id: set-issue
         run: |
+          ISSUE_NUM=""
           if [ "${{ steps.create-with-parent.outputs.issue }}" != "" ]; then
-            echo "issue=${{ steps.create-with-parent.outputs.issue }}" >> $GITHUB_OUTPUT
-          else
-            echo "issue=${{ steps.create-without-parent.outputs.issue }}" >> $GITHUB_OUTPUT
+            ISSUE_NUM="${{ steps.create-with-parent.outputs.issue }}"
+          elif [ "${{ steps.create-without-parent.outputs.issue }}" != "" ]; then
+            ISSUE_NUM="${{ steps.create-without-parent.outputs.issue }}"
           fi
+          
+          echo "Detected issue number: '$ISSUE_NUM'"
+          
+          if [ -z "$ISSUE_NUM" ] || [ "$ISSUE_NUM" = "" ]; then
+            echo "Error: No issue number detected"
+            exit 1
+          fi
+          
+          echo "issue=$ISSUE_NUM" >> $GITHUB_OUTPUT
 
-    # 5. 브랜치명 생성 로직 개선
+      # 6. 브랜치명 생성 로직 개선
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -79,24 +89,30 @@ jobs:
 
       - name: Create branch with Ticket number
         run: |
-          ISSUE_NUMBER="${{ steps.create.outputs.issue }}"
+          ISSUE_NUMBER="${{ steps.set-issue.outputs.issue }}"
+          
+          echo "ISSUE_NUMBER: '$ISSUE_NUMBER'"
+          
+          # 이슈 번호 검증
+          if [ -z "$ISSUE_NUMBER" ] || [ "$ISSUE_NUMBER" = "" ]; then
+            echo "Error: ISSUE_NUMBER is empty"
+            exit 1
+          fi
           
           # Issue Parser에서 브랜치명 가져오기
           PARSED_BRANCH="${{ steps.issue-parser.outputs.issueparser_branch }}"
-          
-          echo "ISSUE_NUMBER: $ISSUE_NUMBER"
           echo "PARSED_BRANCH: '$PARSED_BRANCH'"
           
           # 브랜치명 결정 및 정리
           if [ -n "$PARSED_BRANCH" ] && [ "$PARSED_BRANCH" != "" ] && [ "$PARSED_BRANCH" != "null" ]; then
             echo "Using parsed branch name"
-            # 영어, 숫자, 하이픈, 언더스코어만 허용하고 나머지는 제거
-            BRANCH_SUFFIX=$(echo "$PARSED_BRANCH" | tr -cd '[:alnum:]-_' | sed 's/--*/-/g' | sed 's/^-\|-$//g')
+            # 영어, 숫자, 하이픈, 언더스코어만 허용
+            BRANCH_SUFFIX=$(echo "$PARSED_BRANCH" | sed 's/[^a-zA-Z0-9_-]//g' | sed 's/--*/-/g' | sed 's/^-\|-$//g')
           else
             echo "Using GitHub issue title as fallback"
             ISSUE_TITLE="${{ github.event.issue.title }}"
-            # GitHub 이슈 제목을 영어/숫자/하이픈으로만 변환
-            BRANCH_SUFFIX=$(echo "$ISSUE_TITLE" | tr -cd '[:alnum:]-_' | sed 's/--*/-/g' | sed 's/^-\|-$//g' | cut -c1-30)
+            # GitHub 이슈 제목을 안전한 브랜치명으로 변환
+            BRANCH_SUFFIX=$(echo "$ISSUE_TITLE" | sed 's/[^a-zA-Z0-9_-]//g' | sed 's/--*/-/g' | sed 's/^-\|-$//g' | cut -c1-30)
           fi
           
           echo "BRANCH_SUFFIX after cleaning: '$BRANCH_SUFFIX'"
@@ -111,29 +127,30 @@ jobs:
           
           echo "Final BRANCH_NAME: '$BRANCH_NAME'"
           
-          # Git 브랜치명 유효성 검사
-          if git check-ref-format --branch "$BRANCH_NAME"; then
-            echo "Branch name is valid"
+          # Git 브랜치명 유효성 검사 및 생성
+          if git check-ref-format --branch "$BRANCH_NAME" 2>/dev/null; then
+            echo "Branch name '$BRANCH_NAME' is valid"
             git checkout -b "$BRANCH_NAME"
             git push origin "$BRANCH_NAME"
             echo "CREATED_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
           else
-            echo "Branch name is invalid, using fallback"
-            FALLBACK_BRANCH="${ISSUE_NUMBER}-task"
-            git checkout -b "$FALLBACK_BRANCH"
-            git push origin "$FALLBACK_BRANCH"
-            echo "CREATED_BRANCH=$FALLBACK_BRANCH" >> $GITHUB_ENV
+            echo "Branch name '$BRANCH_NAME' is invalid, using safer fallback"
+            # 더 안전한 폴백 생성
+            SAFE_BRANCH="feature-${ISSUE_NUMBER}"
+            git checkout -b "$SAFE_BRANCH"
+            git push origin "$SAFE_BRANCH"
+            echo "CREATED_BRANCH=$SAFE_BRANCH" >> $GITHUB_ENV
           fi
 
-      # 6. GitHub 이슈 제목 업데이트
+      # 7. GitHub 이슈 제목 업데이트
       - name: Update issue title
         uses: actions-cool/issues-helper@v3
         with:
           actions: update-issue
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: '[${{ steps.create.outputs.issue }}] ${{ github.event.issue.title }}'
+          title: '[${{ steps.set-issue.outputs.issue }}] ${{ github.event.issue.title }}'
 
-      # 7. 코멘트로 Jira 링크와 브랜치 정보 추가
+      # 8. 코멘트로 Jira 링크와 브랜치 정보 추가
       - name: Add comment with Jira issue link
         uses: actions-cool/issues-helper@v3
         with:
@@ -141,6 +158,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.issue.number }}
           body: |
-            🎫 **Jira Issue Created**: [${{ steps.create.outputs.issue }}](${{ secrets.JIRA_BASE_URL }}/browse/${{ steps.create.outputs.issue }})
+            🎫 **Jira Issue Created**: [${{ steps.set-issue.outputs.issue }}](${{ secrets.JIRA_BASE_URL }}/browse/${{ steps.set-issue.outputs.issue }})
             
             🌿 **Branch Created**: `${{ env.CREATED_BRANCH }}`
