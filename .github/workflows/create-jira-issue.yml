@@ -1,4 +1,9 @@
 name: Create Jira issue
+
+permissions:
+  contents: write   # 브랜치 push·PR 생성 등에 필요
+  issues: write
+  
 on:
   issues:
     types:
