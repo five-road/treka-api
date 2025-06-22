@@ -39,9 +39,21 @@ jobs:
             ${{ github.event.issue.body }}
           mode: md2jira
 
-      # 4. Jira Task 생성
-      - name: Create Issue
-        id: create
+    # 4. Jira Task 생성 (상위 작업 조건부 처리)
+      - name: Create Issue with Parent
+        id: create-with-parent
+        if: steps.issue-parser.outputs.issueparser_parentKey != ''
+        uses: atlassian/gajira-create@v3
+        with:
+          project: TREKA
+          issuetype: Task
+          summary: '${{ github.event.issue.title }}'
+          description: '${{ steps.md2jira.outputs.output-text }}'
+          parent: '${{ steps.issue-parser.outputs.issueparser_parentKey }}'
+
+      - name: Create Issue without Parent
+        id: create-without-parent
+        if: steps.issue-parser.outputs.issueparser_parentKey == ''
         uses: atlassian/gajira-create@v3
         with:
           project: TREKA
@@ -49,8 +61,15 @@ jobs:
           summary: '${{ github.event.issue.title }}'
           description: '${{ steps.md2jira.outputs.output-text }}'
 
-      - name: Log created issue
-        run: echo "Jira Issue ${{ steps.create.outputs.issue }} was created"
+      # 생성된 이슈 번호 통합
+      - name: Set Issue Number
+        id: set-issue
+        run: |
+          if [ "${{ steps.create-with-parent.outputs.issue }}" != "" ]; then
+            echo "issue=${{ steps.create-with-parent.outputs.issue }}" >> $GITHUB_OUTPUT
+          else
+            echo "issue=${{ steps.create-without-parent.outputs.issue }}" >> $GITHUB_OUTPUT
+          fi
 
       # 5. 브랜치명 생성 로직 개선
       - name: Checkout code
