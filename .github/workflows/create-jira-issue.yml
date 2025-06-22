@@ -1,9 +1,10 @@
 name: Create Jira issue
 
 
-permissions:          # ✅ 꼭 추가
-  contents: write
-  issues: read
+permissions:          # ← 이 블록을 꼭 넣어 주세요
+  contents: write     # 브랜치 push
+  issues: write       # 제목 수정·코멘트
+  pull-requests: write  # (필요하면) PR 작업도
 
 
 on:
