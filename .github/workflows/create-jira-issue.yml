@@ -77,36 +77,53 @@ jobs:
         with:
           ref: dev
 
-      - name: Create branch with Ticket number
+     - name: Create branch with Ticket number
         run: |
           ISSUE_NUMBER="${{ steps.create.outputs.issue }}"
           
-          # Issue Parser에서 브랜치명 가져오기 (있는 경우)
+          # Issue Parser에서 브랜치명 가져오기
           PARSED_BRANCH="${{ steps.issue-parser.outputs.issueparser_branch }}"
           
-          # 브랜치명 결정 로직
-          if [ -n "$PARSED_BRANCH" ] && [ "$PARSED_BRANCH" != "" ]; then
-            # Issue Parser에서 브랜치명을 가져온 경우
-            BRANCH_SUFFIX=$(echo "$PARSED_BRANCH" | sed 's/[^a-zA-Z0-9가-힣]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g')
+          echo "ISSUE_NUMBER: $ISSUE_NUMBER"
+          echo "PARSED_BRANCH: '$PARSED_BRANCH'"
+          
+          # 브랜치명 결정 및 정리
+          if [ -n "$PARSED_BRANCH" ] && [ "$PARSED_BRANCH" != "" ] && [ "$PARSED_BRANCH" != "null" ]; then
+            echo "Using parsed branch name"
+            # 영어, 숫자, 하이픈, 언더스코어만 허용하고 나머지는 제거
+            BRANCH_SUFFIX=$(echo "$PARSED_BRANCH" | tr -cd '[:alnum:]-_' | sed 's/--*/-/g' | sed 's/^-\|-$//g')
           else
-            # Issue Parser 실패 시 GitHub 이슈 제목 사용
+            echo "Using GitHub issue title as fallback"
             ISSUE_TITLE="${{ github.event.issue.title }}"
-            BRANCH_SUFFIX=$(echo "$ISSUE_TITLE" | sed 's/[^a-zA-Z0-9가-힣]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g' | cut -c1-50)
+            # GitHub 이슈 제목을 영어/숫자/하이픈으로만 변환
+            BRANCH_SUFFIX=$(echo "$ISSUE_TITLE" | tr -cd '[:alnum:]-_' | sed 's/--*/-/g' | sed 's/^-\|-$//g' | cut -c1-30)
           fi
+          
+          echo "BRANCH_SUFFIX after cleaning: '$BRANCH_SUFFIX'"
           
           # 최종 브랜치명 생성
           if [ -n "$BRANCH_SUFFIX" ] && [ "$BRANCH_SUFFIX" != "" ]; then
             BRANCH_NAME="${ISSUE_NUMBER}-${BRANCH_SUFFIX}"
           else
-            BRANCH_NAME="${ISSUE_NUMBER}"
+            # 모든 정리 과정에서 빈 문자열이 나온 경우 기본값 사용
+            BRANCH_NAME="${ISSUE_NUMBER}-task"
           fi
           
-          echo "Creating branch: $BRANCH_NAME"
-          git checkout -b "$BRANCH_NAME"
-          git push origin "$BRANCH_NAME"
+          echo "Final BRANCH_NAME: '$BRANCH_NAME'"
           
-          # 환경 변수로 브랜치명 저장 (다음 스텝에서 사용 가능)
-          echo "CREATED_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
+          # Git 브랜치명 유효성 검사
+          if git check-ref-format --branch "$BRANCH_NAME"; then
+            echo "Branch name is valid"
+            git checkout -b "$BRANCH_NAME"
+            git push origin "$BRANCH_NAME"
+            echo "CREATED_BRANCH=$BRANCH_NAME" >> $GITHUB_ENV
+          else
+            echo "Branch name is invalid, using fallback"
+            FALLBACK_BRANCH="${ISSUE_NUMBER}-task"
+            git checkout -b "$FALLBACK_BRANCH"
+            git push origin "$FALLBACK_BRANCH"
+            echo "CREATED_BRANCH=$FALLBACK_BRANCH" >> $GITHUB_ENV
+          fi
 
       # 6. GitHub 이슈 제목 업데이트
       - name: Update issue title
