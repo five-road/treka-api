@@ -107,7 +107,7 @@ jobs:
           issuetype: Task
           summary: '${{ github.event.issue.title }}'
           description: '${{ steps.md2jira.outputs.output-text }}'
-          fields: '{"parent": {"key": "${{ env.PARSER_SUCCESS == ''true'' && steps.issue-parser.outputs.issueparser_parentKey || steps.manual-parser.outputs.manual_parentKey }}"}}'
+          parent: '${{ env.PARSER_SUCCESS == ''true'' && steps.issue-parser.outputs.issueparser_parentKey || steps.manual-parser.outputs.manual_parentKey }}'
 
       - name: Create Issue without Parent
         id: create-without-parent
