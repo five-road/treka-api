@@ -12,7 +12,13 @@ jobs:
   create-issue:
     runs-on: ubuntu-latest
     steps:
-      # 1. Jira 로그인
+      # 1. 코드 체크아웃 (가장 먼저 실행!)
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      # 2. Jira 로그인
       - name: Login
         uses: atlassian/gajira-login@v3
         env:
@@ -20,7 +26,7 @@ jobs:
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
 
-      # 2. Issue Parser (선택사항)
+      # 3. Issue Parser
       - name: Issue Parser
         id: issue-parser
         uses: stefanbuck/github-issue-parser@v3
@@ -28,7 +34,7 @@ jobs:
           template-path: .github/ISSUE_TEMPLATE/issue-form.yml
         continue-on-error: true
 
-      # 2-1. Issue Parser 결과 확인
+      # 4. Issue Parser 결과 확인
       - name: Check Issue Parser Result
         run: |
           if [ "${{ steps.issue-parser.outcome }}" = "success" ]; then
@@ -39,81 +45,10 @@ jobs:
             echo "PARSER_SUCCESS=false" >> $GITHUB_ENV
           fi
 
-      # 3. Markdown → Jira
-      - name: Convert markdown to Jira Syntax
-        id: md2jira
-        uses: peter-evans/jira2md@v1
-        with:
-          input-text: |
-            ### Github Issue Link
-            - ${{ github.event.issue.html_url }}
-            ${{ github.event.issue.body }}
-          mode: md2jira
-
-      # 4. Jira Task 생성 (상위 작업 조건부 처리)
-      - name: Create Issue with Parent
-        id: create-with-parent
-        if: env.PARSER_SUCCESS == 'true' && steps.issue-parser.outputs.issueparser_parentKey != '' || env.PARSER_SUCCESS == 'false' && steps.manual-parser.outputs.manual_parentKey != ''
-        uses: atlassian/gajira-create@v3
-        with:
-          project: TREKA
-          issuetype: Task
-          summary: '${{ github.event.issue.title }}'
-          description: '${{ steps.md2jira.outputs.output-text }}'
-          parent: '${{ env.PARSER_SUCCESS == ''true'' && steps.issue-parser.outputs.issueparser_parentKey || steps.manual-parser.outputs.manual_parentKey }}'
-
-      - name: Create Issue without Parent
-        id: create-without-parent
-        if: env.PARSER_SUCCESS == 'true' && steps.issue-parser.outputs.issueparser_parentKey == '' || env.PARSER_SUCCESS == 'false' && steps.manual-parser.outputs.manual_parentKey == ''
-        uses: atlassian/gajira-create@v3
-        with:
-          project: TREKA
-          issuetype: Task
-          summary: '${{ github.event.issue.title }}'
-          description: '${{ steps.md2jira.outputs.output-text }}'
-
-      # 5. 생성된 이슈 번호 통합 및 검증
-      - name: Set Issue Number
-        id: set-issue
-        run: |
-          ISSUE_NUM=""
-          if [ "${{ steps.create-with-parent.outputs.issue }}" != "" ]; then
-            ISSUE_NUM="${{ steps.create-with-parent.outputs.issue }}"
-          elif [ "${{ steps.create-without-parent.outputs.issue }}" != "" ]; then
-            ISSUE_NUM="${{ steps.create-without-parent.outputs.issue }}"
-          fi
-          
-          echo "Detected issue number: '$ISSUE_NUM'"
-          
-          if [ -z "$ISSUE_NUM" ] || [ "$ISSUE_NUM" = "" ]; then
-            echo "Error: No issue number detected"
-            exit 1
-          fi
-          
-          echo "issue=$ISSUE_NUM" >> $GITHUB_OUTPUT
-
-      # 6. 브랜치명 생성 로직 개선
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: dev
-
-      - name: Debug Issue Parser Outputs
-        run: |
-          echo "=== Issue Parser 전체 출력 디버깅 ==="
-          echo "Parser Success: ${{ env.PARSER_SUCCESS }}"
-          echo "issueparser_branch: '${{ steps.issue-parser.outputs.issueparser_branch }}'"
-          echo "issueparser_description: '${{ steps.issue-parser.outputs.issueparser_description }}'"
-          echo "issueparser_parentKey: '${{ steps.issue-parser.outputs.issueparser_parentKey }}'"
-          echo "issueparser_tasks: '${{ steps.issue-parser.outputs.issueparser_tasks }}'"
-          echo "GitHub Issue Title: '${{ github.event.issue.title }}'"
-          echo "GitHub Issue Body: '${{ github.event.issue.body }}'"
-          echo "=================================="
-
+      # 5. Manual Parse Issue Body
       - name: Manual Parse Issue Body
         id: manual-parser
         run: |
-          # Issue Form이 실패한 경우 수동으로 이슈 본문 파싱
           ISSUE_BODY="${{ github.event.issue.body }}"
           
           echo "Parsing issue body manually..."
@@ -136,6 +71,75 @@ jobs:
           echo "manual_parentKey=$PARENT_KEY" >> $GITHUB_OUTPUT
           echo "manual_branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
 
+      # 6. Debug Issue Parser Outputs
+      - name: Debug Issue Parser Outputs
+        run: |
+          echo "=== Issue Parser 전체 출력 디버깅 ==="
+          echo "Parser Success: ${{ env.PARSER_SUCCESS }}"
+          echo "issueparser_branch: '${{ steps.issue-parser.outputs.issueparser_branch }}'"
+          echo "issueparser_description: '${{ steps.issue-parser.outputs.issueparser_description }}'"
+          echo "issueparser_parentKey: '${{ steps.issue-parser.outputs.issueparser_parentKey }}'"
+          echo "issueparser_tasks: '${{ steps.issue-parser.outputs.issueparser_tasks }}'"
+          echo "manual_parentKey: '${{ steps.manual-parser.outputs.manual_parentKey }}'"
+          echo "manual_branch: '${{ steps.manual-parser.outputs.manual_branch }}'"
+          echo "GitHub Issue Title: '${{ github.event.issue.title }}'"
+          echo "GitHub Issue Body: '${{ github.event.issue.body }}'"
+          echo "=================================="
+
+      # 7. Markdown → Jira 변환
+      - name: Convert markdown to Jira Syntax
+        id: md2jira
+        uses: peter-evans/jira2md@v1
+        with:
+          input-text: |
+            ### Github Issue Link
+            - ${{ github.event.issue.html_url }}
+            ${{ github.event.issue.body }}
+          mode: md2jira
+
+      # 8. Jira Task 생성 (상위 작업 조건부 처리)
+      - name: Create Issue with Parent
+        id: create-with-parent
+        if: env.PARSER_SUCCESS == 'true' && steps.issue-parser.outputs.issueparser_parentKey != '' || env.PARSER_SUCCESS == 'false' && steps.manual-parser.outputs.manual_parentKey != ''
+        uses: atlassian/gajira-create@v3
+        with:
+          project: TREKA
+          issuetype: Task
+          summary: '${{ github.event.issue.title }}'
+          description: '${{ steps.md2jira.outputs.output-text }}'
+          parent: '${{ env.PARSER_SUCCESS == ''true'' && steps.issue-parser.outputs.issueparser_parentKey || steps.manual-parser.outputs.manual_parentKey }}'
+
+      - name: Create Issue without Parent
+        id: create-without-parent
+        if: env.PARSER_SUCCESS == 'true' && steps.issue-parser.outputs.issueparser_parentKey == '' || env.PARSER_SUCCESS == 'false' && steps.manual-parser.outputs.manual_parentKey == ''
+        uses: atlassian/gajira-create@v3
+        with:
+          project: TREKA
+          issuetype: Task
+          summary: '${{ github.event.issue.title }}'
+          description: '${{ steps.md2jira.outputs.output-text }}'
+
+      # 9. 생성된 이슈 번호 통합 및 검증
+      - name: Set Issue Number
+        id: set-issue
+        run: |
+          ISSUE_NUM=""
+          if [ "${{ steps.create-with-parent.outputs.issue }}" != "" ]; then
+            ISSUE_NUM="${{ steps.create-with-parent.outputs.issue }}"
+          elif [ "${{ steps.create-without-parent.outputs.issue }}" != "" ]; then
+            ISSUE_NUM="${{ steps.create-without-parent.outputs.issue }}"
+          fi
+          
+          echo "Detected issue number: '$ISSUE_NUM'"
+          
+          if [ -z "$ISSUE_NUM" ] || [ "$ISSUE_NUM" = "" ]; then
+            echo "Error: No issue number detected"
+            exit 1
+          fi
+          
+          echo "issue=$ISSUE_NUM" >> $GITHUB_OUTPUT
+
+      # 10. 브랜치 생성
       - name: Create branch with Ticket number
         run: |
           ISSUE_NUMBER="${{ steps.set-issue.outputs.issue }}"
@@ -203,7 +207,7 @@ jobs:
             echo "CREATED_BRANCH=$SAFE_BRANCH" >> $GITHUB_ENV
           fi
 
-      # 7. GitHub 이슈 제목 업데이트
+      # 11. GitHub 이슈 제목 업데이트
       - name: Update issue title
         uses: actions-cool/issues-helper@v3
         with:
@@ -211,7 +215,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: '[${{ steps.set-issue.outputs.issue }}] ${{ github.event.issue.title }}'
 
-      # 8. 코멘트로 Jira 링크와 브랜치 정보 추가
+      # 12. 코멘트로 Jira 링크와 브랜치 정보 추가
       - name: Add comment with Jira issue link
         uses: actions-cool/issues-helper@v3
         with:
