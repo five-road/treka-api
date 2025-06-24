@@ -19,6 +19,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         Map<String, Object> attributes = oAuth2User.getAttributes();
 
         if (registrationId.equals("google")) {
+            // 구글: sub(고유ID), email, name
             return new CustomOAuth2User(
                     (String) attributes.get("sub"),
                     (String) attributes.get("email"),
@@ -27,6 +28,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                     attributes
             );
         } else if (registrationId.equals("kakao")) {
+            // 카카오: id(고유ID), kakao_account.email, kakao_account.profile.nickname
             Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
             Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
             return new CustomOAuth2User(
@@ -40,4 +42,3 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         throw new IllegalArgumentException("Unsupported provider: " + registrationId);
     }
 }
-

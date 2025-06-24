@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -30,8 +31,12 @@ public class UserController {
 
     @Operation(summary = "로그인")
     @PostMapping("/login")
-    public ResponseEntity<UserLoginResponse> login(@Valid @RequestBody UserLoginRequest request) {
-        UserLoginResponse response = userService.login(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<UserLoginResponse> login(@Valid @RequestBody UserLoginRequest request, HttpServletResponse response) {
+        UserLoginResponse loginResponse = userService.login(request);
+        // JWT 토큰이 UserLoginResponse에 포함되어 있다고 가정
+        if (loginResponse.getAccessToken() != null) {
+            response.setHeader("Authorization", "Bearer " + loginResponse.getAccessToken());
+        }
+        return ResponseEntity.ok(loginResponse);
     }
 }
