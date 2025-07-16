@@ -17,4 +17,16 @@ public class CommonResponse<T> {
 
     @Schema(description = "추가 메시지", example = "요청이 성공적으로 처리되었습니다.")
     private String message;
+
+    public static <T> CommonResponse<T> success(T data) {
+        return CommonResponse.<T>builder()
+                .success(true)
+                .message("요청이 성공적으로 처리되었습니다.")
+                .data(data)
+                .build();
+    }
+
+    public static CommonResponse<Void> success() {
+        return success(null);
+    }
 }

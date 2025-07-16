@@ -23,4 +23,8 @@ public class UserSignupRequest {
     @NotBlank(message = "이름은 필수입니다.")
     @Schema(description = "이름", example = "홍길동")
     private String name;
+
+    @NotBlank(message = "닉네임은 필수입니다.")
+    @Schema(description = "닉네임", example = "홍")
+    private String nickName;
 }
