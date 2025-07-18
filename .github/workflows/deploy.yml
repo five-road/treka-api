@@ -24,9 +24,15 @@ jobs:
 
       - name: Build Docker & Push
         run : |
-            docker login -u ${{ secrets.DOCKER_USERNAME}} -p ${{ secrets.DOCKER_PASSWORD }}
-            docker build --platform linux/arm64/v8 -t ${{ secrets.DOCKER_REPO }}:latest .
-            docker push ${{ secrets.DOCKER_REPO }}:latest .
+          sudo docker run -d --name odo \
+          -p 8080:8080 \
+          -e SPRING_DATASOURCE_URL=${{ secrets.DB_URL }} \
+          -e SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USERNAME }} \
+          -e SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }} \
+          -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+          -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
+          ${{ secrets.DOCKER_REPO }}:latest
+  
 
       - name: Deploy to Raspberry Pi
         uses : appleboy/ssh-action@master
