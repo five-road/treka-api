@@ -12,41 +12,42 @@ import java.util.Date;
 public class JwtUtil {
 
     private final Key key;
-    @Value("${secrets.jwt.expiration}")
-    private final long expiration = 1000 * 60 * 60; // 1시간
+    private final Long expiration;
 
-    public JwtUtil(@Value("${secrets.jwt.secret}") String secret) {
+    public JwtUtil(@Value("${secrets.jwt.secret}") String secret
+        , @Value("${secrets.jwt.expiration}") Long expiration) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
+        this.expiration = expiration;
     }
 
     public String generateToken(String email, String role) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
         return Jwts.builder()
-                .setSubject(email)
-                .claim("role", role)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(key, SignatureAlgorithm.HS256)
-                .compact();
+            .setSubject(email)
+            .claim("role", role)
+            .setIssuedAt(now)
+            .setExpiration(expiryDate)
+            .signWith(key, SignatureAlgorithm.HS256)
+            .compact();
     }
 
     public String getEmailFromToken(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+            .setSigningKey(key)
+            .build()
+            .parseClaimsJws(token)
+            .getBody()
+            .getSubject();
     }
 
     public String getRoleFromToken(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .get("role", String.class);
+            .setSigningKey(key)
+            .build()
+            .parseClaimsJws(token)
+            .getBody()
+            .get("role", String.class);
     }
 
     public boolean validateToken(String token) {

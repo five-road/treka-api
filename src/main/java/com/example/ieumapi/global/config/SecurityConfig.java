@@ -50,14 +50,14 @@ public class SecurityConfig {
                         .permitAll()
                         .anyRequest().hasRole("USER")
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo
-                                .userService(customOAuth2UserService)
-                        )
-                        .successHandler(oAuth2SuccessHandler)
-                        .failureHandler(new SimpleUrlAuthenticationFailureHandler())
-                );
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+//                .oauth2Login(oauth2 -> oauth2
+//                        .userInfoEndpoint(userInfo -> userInfo
+//                                .userService(customOAuth2UserService)
+//                        )
+//                        .successHandler(oAuth2SuccessHandler)
+//                        .failureHandler(new SimpleUrlAuthenticationFailureHandler())
+//                );
         return http.build();
     }
 
