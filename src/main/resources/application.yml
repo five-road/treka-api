@@ -1,0 +1,9 @@
+spring:
+  profiles:
+    active: prod  # 또는 prod
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 공통 속성 (URL, username 등은 각 프로파일에서 정의)
+
+server:
+  port: 8080

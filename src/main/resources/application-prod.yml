@@ -1,0 +1,21 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+
+secrets:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration : ${JWT_EXPIRATION}
+
+#logging:
+#  level:
+#    root: INFO
