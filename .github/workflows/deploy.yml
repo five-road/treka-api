@@ -23,8 +23,8 @@ jobs:
         run: ./gradlew clean build
       
 
-      - name: Docker Login
-        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build Docker Image
+        run: docker buildx build --platform linux/arm64/v8 -t ${{ secrets.DOCKER_REPO }}:latest . --load
 
       - name: Build Docker Image
         run: docker build --platform linux/arm64/v8 -t ${{ secrets.DOCKER_REPO }}:latest .
