@@ -26,18 +26,11 @@ jobs:
       - name: Docker Login
         run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
 
-      
-      # create docker iamge
-      - name: Build Docker & Push
-        run : |
-          sudo docker run -d --name odo \
-          -p 8080:8080 \
-          -e SPRING_DATASOURCE_URL=${{ secrets.DB_URL }} \
-          -e SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USERNAME }} \
-          -e SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }} \
-          -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
-          -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
-          ${{ secrets.DOCKER_REPO }}:latest
+      - name: Build Docker Image
+        run: docker build --platform linux/arm64/v8 -t ${{ secrets.DOCKER_REPO }}:latest .
+
+      - name: Push Docker Image
+        run: docker push ${{ secrets.DOCKER_REPO }}:latest
       
       # rasberry pi connect and docker login
       - name: Docker Login on Raspberry Pi
