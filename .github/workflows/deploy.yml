@@ -21,7 +21,13 @@ jobs:
 
       - name: Build with Gradle
         run: ./gradlew clean build
+      
 
+      - name: Docker Login
+        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+
+      
+      # create docker iamge
       - name: Build Docker & Push
         run : |
           sudo docker run -d --name odo \
@@ -32,19 +38,54 @@ jobs:
           -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
           -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
           ${{ secrets.DOCKER_REPO }}:latest
-  
-
-      - name: Deploy to Raspberry Pi
-        uses : appleboy/ssh-action@master
+      
+      # rasberry pi connect and docker login
+      - name: Docker Login on Raspberry Pi
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            sudo rm odo.log || true &&
-            docker stop odo || true &&
-            docker rm odo || true &&
-            sudo docker run -d --name odo -p 8080:8080 -d ${{ secrets.DOCKER_REPO }}:latest .
-            sudo docker logs -f odo &> odo.log &
-            docker image prune -f
+            docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Stop & Remove old container
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            docker stop odo || true
+            docker rm odo || true
+            sudo rm odo.log || true
+
+      - name: Pull latest image and run container
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            docker pull ${{ secrets.DOCKER_REPO }}:latest
+            docker run -d --name odo \
+              -p 8080:8080 \
+              -e SPRING_DATASOURCE_URL=${{ secrets.DB_URL }} \
+              -e SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USERNAME }} \
+              -e SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }} \
+              -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+              -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
+              ${{ secrets.DOCKER_REPO }}:latest
+            docker logs -f odo &> odo.log &
+
+      - name: Prune unused Docker images
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: docker image prune -f
