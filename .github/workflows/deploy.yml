@@ -72,7 +72,7 @@ jobs:
               -e SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }} \
               -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
               -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
-              ${{ secrets.DOCKER_REPO }}:latest
+              ${{ secrets.DOCKER_REPO }}:0.0.1
             docker logs -f odo &> odo.log &
 
       - name: Prune unused Docker images
