@@ -1,5 +1,6 @@
 package com.example.ieumapi.global.security;
 
+import com.example.ieumapi.user.domain.User;
 import com.example.ieumapi.user.domain.UserRole;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
@@ -18,11 +19,11 @@ public class CustomOAuth2User implements OAuth2User {
     private final UserRole role;
     private final Map<String, Object> attributes;
 
-    public CustomOAuth2User(String id, String email, String name, UserRole role, Map<String, Object> attributes) {
-        this.id = id;
-        this.email = email;
-        this.name = name;
-        this.role = role;
+    public CustomOAuth2User(User user, Map<String, Object> attributes) {
+        this.id = String.valueOf(user.getUserId());
+        this.email = user.getEmail();
+        this.name = user.getName();
+        this.role = user.getRole();
         this.attributes = attributes;
     }
 

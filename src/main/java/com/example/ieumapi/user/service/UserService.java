@@ -14,14 +14,20 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.example.ieumapi.user.exception.UserErrorCode.INVALID_CREDENTIALS;
@@ -48,6 +54,81 @@ public class UserService {
                 .role(ROLE_USER)
                 .isActive(true)
                 .build();
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void oauth2Signup(String accessToken) {
+        // Google 사용자 정보 가져오기
+        String userInfoEndpoint = "https://www.googleapis.com/oauth2/v3/userinfo";
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Map> response = restTemplate.exchange(userInfoEndpoint, HttpMethod.GET, entity, Map.class);
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Google 사용자 정보를 가져올 수 없습니다.");
+        }
+
+        Map<String, Object> userInfo = response.getBody();
+        String email = (String) userInfo.get("email");
+        String name = (String) userInfo.get("name");
+        String picture = (String) userInfo.get("picture");
+
+        // 사용자 정보로 회원가입 처리
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new UserException(USER_DUPLICATED);
+        }
+
+        User user = User.builder()
+                .email(email)
+                .name(name)
+                .nickName(name) // 닉네임은 이름으로 설정
+                .imageUrl(picture)
+                .password("") // OAuth2 사용자는 비밀번호가 필요 없음
+                .role(ROLE_USER)
+                .isActive(true)
+                .build();
+
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void kakaoSignup(String accessToken) {
+        // Kakao 사용자 정보 가져오기
+        String userInfoEndpoint = "https://kapi.kakao.com/v2/user/me";
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Map> response = restTemplate.exchange(userInfoEndpoint, HttpMethod.GET, entity, Map.class);
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Kakao 사용자 정보를 가져올 수 없습니다.");
+        }
+
+        Map<String, Object> userInfo = response.getBody();
+        Map<String, Object> kakaoAccount = (Map<String, Object>) userInfo.get("kakao_account");
+        String email = (String) kakaoAccount.get("email");
+        String nickname = (String) ((Map<String, Object>) userInfo.get("properties")).get("nickname");
+        String profileImage = (String) ((Map<String, Object>) userInfo.get("properties")).get("profile_image");
+
+        // 사용자 정보로 회원가입 처리
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new UserException(USER_DUPLICATED);
+        }
+
+        User user = User.builder()
+                .email(email)
+                .name(nickname)
+                .nickName(nickname)
+                .imageUrl(profileImage)
+                .password("") // OAuth2 사용자는 비밀번호가 필요 없음
+                .role(ROLE_USER)
+                .isActive(true)
+                .build();
+
         userRepository.save(user);
     }
 

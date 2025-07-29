@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: prod  # 또는 prod
+    active: local  # 또는 prod
 
     # 공통 속성 (URL, username 등은 각 프로파일에서 정의)
 
