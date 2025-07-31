@@ -30,7 +30,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(Exception.class)
+        @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception ex) {
         log.error("예상치 못한 서버 오류 발생", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

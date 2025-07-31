@@ -23,13 +23,10 @@ public class CommonResponseAdvice implements ResponseBodyAdvice<Object> {
     @Override
     public boolean supports(MethodParameter returnType,
                             Class<? extends HttpMessageConverter<?>> converterType) {
-//        Class<?> responseType = returnType.getParameterType();
-//
-//        return !CommonResponse.class.isAssignableFrom(responseType)
-//                && !ErrorResponse.class.isAssignableFrom(responseType);
-//        boolean support = !ErrorResponse.class.isAssignableFrom(returnType.getParameterType());
-//        log.info("[supports] {} => {}", returnType.getMethod(), support);
-//        return support;
+        // springdoc-openapi 관련 응답은 제외
+        if (returnType.getContainingClass().getName().startsWith("org.springdoc")) {
+            return false;
+        }
         return !ErrorResponse.class.isAssignableFrom(returnType.getParameterType());
     }
 

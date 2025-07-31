@@ -29,8 +29,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/login/oauth2/code/google", "/login/oauth2/code/kakao", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers(
+                            "/login/oauth2/code/google",
+                            "/login/oauth2/code/kakao",
+                            "/swagger-ui/**",
+                            "/api-docs/**",
+                            "/v3/api-docs/**",
+                            "/api-docs/swagger-config"
+
+                        ).permitAll()
+                        .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo
@@ -48,4 +56,6 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
+
+
 
