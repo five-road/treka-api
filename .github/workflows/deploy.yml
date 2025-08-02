@@ -72,6 +72,10 @@ jobs:
               -e SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }} \
               -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
               -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
+              -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
+              -e GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
+              -e KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }} \
+              -e KAKAO_CLIENT_SECRET={{ secrets.KAKAO_CLIENT_SECRET }} \
               ${{ secrets.DOCKER_REPO }}:0.0.1
             docker logs -f odo &> odo.log &
 
