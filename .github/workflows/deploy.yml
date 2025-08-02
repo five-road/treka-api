@@ -1,4 +1,4 @@
-name: CI/CD to Raspberry Pi
+name: CI/CD to Raspberry Pi for odo
 
 on:
   push:
