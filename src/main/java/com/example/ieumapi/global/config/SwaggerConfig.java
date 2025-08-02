@@ -4,6 +4,8 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+
+import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,7 +17,7 @@ public class SwaggerConfig {
                 .info(new Info()
                         .title("Treka API 문서")
                         .description("Treka 프로젝트의 REST API 명세서입니다.")
-                        .version("v1.0.0"))
+                        .version("0.0.1"))
                 .addSecurityItem(new SecurityRequirement().addList("JWT"))
                 .components(new io.swagger.v3.oas.models.Components()
                         .addSecuritySchemes("JWT",
@@ -28,4 +30,8 @@ public class SwaggerConfig {
                         )
                 );
     }
+
+    
+
+
 }
