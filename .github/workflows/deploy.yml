@@ -64,7 +64,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            docker pull ${{ secrets.DOCKER_REPO }}:latest
+            docker pull ${{ secrets.DOCKER_REPO }}:0.0.1
             docker run -d --name odo \
               -p 8080:8080 \
               -e SPRING_DATASOURCE_URL=${{ secrets.DB_URL }} \
