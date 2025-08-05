@@ -24,7 +24,7 @@ spring:
             scope:
               - email
               - profile
-            redirect-uri: "https://treka.persimmontree.cloud/oauth2/authorization/google"
+            redirect-uri: "https://treka.persimmontree.cloud/login/oauth2/google"
             authorization-grant-type: authorization_code
           kakao:
             client-id: ${KAKAO_CLIENT_ID}
