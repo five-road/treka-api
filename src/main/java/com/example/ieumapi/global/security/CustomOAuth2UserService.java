@@ -30,30 +30,35 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String name = (String) attributes.get("name");
         String picture = (String) attributes.get("picture");
 
+
+
         Optional<User> userOptional = userRepository.findByEmail(email);
 
         User user;
         if (userOptional.isPresent()) {
-            user = userOptional.get();
             // Update user info if necessary
-            user = user.builder()
-                    .name(name)
-                    .imageUrl(picture)
-                    .build();
+            user = User.builder()
+                .email(email)
+                .name(name)
+                .role(UserRole.ROLE_USER)
+                .imageUrl(picture)
+                .build();
+
+            // Skip saving and directly return CustomOAuth2User
+            return new CustomOAuth2User(user, attributes);
         } else {
             user = User.builder()
-                    .email(email)
-                    .name(name)
-                    .nickName(name) // Or generate a unique nickname
-                    .imageUrl(picture)
-                    .password("") // Not used for OAuth2
-                    .snsType(registrationId.toUpperCase())
-                    .role(UserRole.ROLE_USER)
-                    .build();
+                .email(email)
+                .name(name)
+                .nickName(name) // Or generate a unique nickname
+                .imageUrl(picture)
+                .password("") // Not used for OAuth2
+                .snsType(registrationId.toUpperCase())
+                .role(UserRole.ROLE_USER)
+                .build();
         }
 
         userRepository.save(user);
-
         return new CustomOAuth2User(user, attributes);
     }
 }
