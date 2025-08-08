@@ -53,6 +53,9 @@ secrets:
     expiration : ${JWT_EXPIRATION}
 
 
+weather:
+  api:
+    key: ${WEATHER_API_KEY}
 
 #logging:
 #  level:

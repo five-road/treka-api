@@ -30,20 +30,17 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
+                            "/oauth2/authorization/**",
                             "/login/oauth2/code/google",
                             "/login/oauth2/code/kakao",
                             "/swagger-ui/**",
                             "/api-docs/**",
                             "/v3/api-docs/**",
                             "/api-docs/swagger-config"
-
                         ).permitAll()
                         .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo
-                                .userService(customOAuth2UserService)
-                        )
                         .successHandler(oAuth2SuccessHandler)
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -56,6 +53,4 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 }
-
-
 
