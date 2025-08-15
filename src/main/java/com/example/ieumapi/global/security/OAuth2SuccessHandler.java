@@ -1,6 +1,7 @@
 package com.example.ieumapi.global.security;
 
 import com.example.ieumapi.global.jwt.JwtUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,6 +11,7 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -33,7 +35,12 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         String refreshToken = jwtUtil.generateRefreshToken(username);
 
         response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write("{\"accessToken\":\"" + accessToken + "\", \"refreshToken\":\"" + refreshToken + "\"}");
+        response.getWriter().write(new ObjectMapper().writeValueAsString(
+            Map.of(
+                "accessToken", accessToken,
+                "refreshToken", refreshToken
+            )
+        ));
     }
 }
 
