@@ -37,19 +37,48 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             String email = (String) kakaoAccount.get("email");
             String nickname = (String) profile.get("nickname");
             String profileImageUrl = (String) profile.get("profile_image_url");
-            return new KakaoOAuth2User(id, email, nickname, UserRole.ROLE_USER, profileImageUrl, attributes);
+
+            // 회원 존재 여부 확인 및 회원가입
+            User user = userRepository.findByEmail(email).orElseGet(() -> {
+                User newUser = User.builder()
+                        .email(email)
+                        .name(nickname)
+                        .nickName(nickname) // nickName 추가
+                        .password("") // password NOT NULL 대응
+                        .role(UserRole.ROLE_USER)
+                        .imageUrl(profileImageUrl)
+                        .snsType(KAKAO)
+                        .build();
+                return userRepository.save(newUser);
+            });
+
+            return new KakaoOAuth2User(id, email, nickname, user.getRole(), profileImageUrl, attributes);
         } else if (GOOGLE.equals(registrationId)) {
             // 구글 정보 파싱
             String id = (String) attributes.get("sub");
             String email = (String) attributes.get("email");
             String name = (String) attributes.get("name");
             String picture = (String) attributes.get("picture");
-            return new GoogleOAuth2User(id, email, name, UserRole.ROLE_USER, picture, attributes);
+
+            // 회원 존재 여부 확인 및 회원가입
+            User user = userRepository.findByEmail(email).orElseGet(() -> {
+                User newUser = User.builder()
+                        .email(email)
+                        .name(name)
+                        .nickName(name) // nickName 추가
+                        .password("") // password NOT NULL 대응
+                        .role(UserRole.ROLE_USER)
+                        .imageUrl(picture)
+                        .snsType(GOOGLE)
+                        .build();
+                return userRepository.save(newUser);
+            });
+
+            return new GoogleOAuth2User(id, email, name, user.getRole(), picture, attributes);
         } else {
             throw new OAuth2AuthenticationException("지원하지 않는 소셜 로그인입니다.");
         }
     }
-
 
 }
 
