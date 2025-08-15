@@ -1,4 +1,4 @@
-name: CI/CD to Raspberry Pi
+name: CI/CD to Raspberry Pi for odo
 
 on:
   push:
@@ -64,16 +64,21 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            docker pull ${{ secrets.DOCKER_REPO }}:latest
+            docker pull ${{ secrets.DOCKER_REPO }}:0.0.1
             docker run -d --name odo \
-              -p 8080:8080 \
+              --network=host \
               -e SPRING_DATASOURCE_URL=${{ secrets.DB_URL }} \
               -e SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USERNAME }} \
               -e SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }} \
               -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
               -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
+              -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
+              -e GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
+              -e KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }} \
+              -e KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }} \
+              -e WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }} \
               ${{ secrets.DOCKER_REPO }}:0.0.1
-            docker logs -f odo &> odo.log &
+             docker logs -f odo &> odo.log &
 
       - name: Prune unused Docker images
         uses: appleboy/ssh-action@master

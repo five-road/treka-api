@@ -1,18 +1,26 @@
 package com.example.ieumapi.global.config;
 
+
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
-
-import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+@OpenAPIDefinition(
+    servers = {
+        @Server(url = "http://localhost:8080", description = "Local Server"),
+        @Server(url = "https://treka.persimmontree.cloud", description = "Production Server")
+    }
+)
 @Configuration
 public class SwaggerConfig {
     @Bean
     public OpenAPI openAPI() {
+
         return new OpenAPI()
                 .info(new Info()
                         .title("Treka API 문서")
@@ -30,8 +38,5 @@ public class SwaggerConfig {
                         )
                 );
     }
-
-    
-
 
 }

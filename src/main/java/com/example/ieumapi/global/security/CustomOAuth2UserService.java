@@ -77,8 +77,10 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             return new GoogleOAuth2User(id, email, name, user.getRole(), picture, attributes);
         } else {
             throw new OAuth2AuthenticationException("지원하지 않는 소셜 로그인입니다.");
+
         }
     }
 
 }
+
 
