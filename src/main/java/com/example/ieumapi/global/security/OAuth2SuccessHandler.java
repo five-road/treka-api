@@ -19,13 +19,21 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
-        CustomOAuth2User oAuth2User = (CustomOAuth2User) authentication.getPrincipal();
+        Object principal = authentication.getPrincipal();
+        String username;
+        if (principal instanceof GoogleOAuth2User) {
+            username = ((GoogleOAuth2User) principal).getEmail();
+        } else if (principal instanceof KakaoOAuth2User) {
+            username = ((KakaoOAuth2User) principal).getEmail();
+        } else {
+            throw new IllegalArgumentException("Unknown OAuth2User type");
+        }
 
-        String accessToken = jwtUtil.generateAccessToken(oAuth2User.getName());
-        String refreshToken = jwtUtil.generateRefreshToken(oAuth2User.getName());
+        String accessToken = jwtUtil.generateAccessToken(username);
+        String refreshToken = jwtUtil.generateRefreshToken(username);
 
-        // You can send tokens via response body, headers, or cookies
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write("{\"accessToken\":\"" + accessToken + "\", \"refreshToken\":\"" + refreshToken + "\"}");
     }
 }
+

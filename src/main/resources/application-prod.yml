@@ -34,7 +34,8 @@ spring:
               - profile_image
               - name
               - account_email
-            redirect-uri: "http://localhost:8081/login/oauth2/code/kakao"
+            redirect-uri: "http://treka.persimmontree.cloud:8080/login/oauth2/code/kakao"
+            client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
         provider:
           google:

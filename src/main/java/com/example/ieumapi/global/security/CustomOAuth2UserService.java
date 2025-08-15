@@ -29,48 +29,27 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         Map<String, Object> attributes = oAuth2User.getAttributes();
 
-        User user = null;
-        String email = null;
-
-        if(KAKAO.equals(registrationId)){
-            email = attributes.get("account_email").toString();
-            user  = isKakao(attributes);
-        } else if (GOOGLE.equals(registrationId)){
-            email = attributes.get("email").toString();
-            user = isGoogle(attributes);
+        if (KAKAO.equals(registrationId)) {
+            // 카카오 정보 파싱
+            Map<String, Object> kakaoAccount = (Map<String, Object>) attributes.get("kakao_account");
+            Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
+            String id = String.valueOf(attributes.get("id"));
+            String email = (String) kakaoAccount.get("email");
+            String nickname = (String) profile.get("nickname");
+            String profileImageUrl = (String) profile.get("profile_image_url");
+            return new KakaoOAuth2User(id, email, nickname, UserRole.ROLE_USER, profileImageUrl, attributes);
+        } else if (GOOGLE.equals(registrationId)) {
+            // 구글 정보 파싱
+            String id = (String) attributes.get("sub");
+            String email = (String) attributes.get("email");
+            String name = (String) attributes.get("name");
+            String picture = (String) attributes.get("picture");
+            return new GoogleOAuth2User(id, email, name, UserRole.ROLE_USER, picture, attributes);
+        } else {
+            throw new OAuth2AuthenticationException("지원하지 않는 소셜 로그인입니다.");
         }
-
-        // 이미 존재하는 회원일시
-        if (userRepository.existsByEmail(email)) {
-            return new CustomOAuth2User(Objects.requireNonNull(user), attributes);
-        }
-
-        // 새로운 유저일시
-        userRepository.save(Objects.requireNonNull(user));
-        return new CustomOAuth2User(user, attributes);
     }
 
-    private User isGoogle(Map<String, Object> attributes){
-        return User.builder()
-            .email((String) attributes.get("email"))
-            .password("")
-            .nickName((String) attributes.get("nickName"))
-            .name((String) attributes.get("name"))
-            .role(UserRole.ROLE_USER)
-            .imageUrl((String) attributes.get("picture"))
-            .snsType(GOOGLE)
-            .build();
-    }
 
-    private User isKakao(Map<String, Object> attributes){
-        return User.builder()
-            .email((String) attributes.get("account_email"))
-            .password("")
-            .nickName((String) attributes.get("profile_nickname"))
-            .name((String) attributes.get("name"))
-            .role(UserRole.ROLE_USER)
-            .imageUrl((String) attributes.get("profile_image"))
-            .snsType(KAKAO)
-            .build();
-    }
 }
+

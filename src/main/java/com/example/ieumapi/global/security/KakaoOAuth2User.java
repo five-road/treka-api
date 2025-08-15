@@ -1,8 +1,6 @@
 package com.example.ieumapi.global.security;
 
-import com.example.ieumapi.user.domain.User;
 import com.example.ieumapi.user.domain.UserRole;
-import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -11,19 +9,20 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-@Getter
-public class CustomOAuth2User implements OAuth2User {
+public class KakaoOAuth2User implements OAuth2User {
     private final String id;
     private final String email;
-    private final String name;
+    private final String nickname;
     private final UserRole role;
+    private final String profileImageUrl;
     private final Map<String, Object> attributes;
 
-    public CustomOAuth2User(User user, Map<String, Object> attributes) {
-        this.id = String.valueOf(user.getUserId());
-        this.email = user.getEmail();
-        this.name = user.getName();
-        this.role = user.getRole();
+    public KakaoOAuth2User(String id, String email, String nickname, UserRole role, String profileImageUrl, Map<String, Object> attributes) {
+        this.id = id;
+        this.email = email;
+        this.nickname = nickname;
+        this.role = role;
+        this.profileImageUrl = profileImageUrl;
         this.attributes = attributes;
     }
 
@@ -39,7 +38,15 @@ public class CustomOAuth2User implements OAuth2User {
 
     @Override
     public String getName() {
-        return name;
+        return nickname;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getProfileImageUrl() {
+        return profileImageUrl;
     }
 }
 
