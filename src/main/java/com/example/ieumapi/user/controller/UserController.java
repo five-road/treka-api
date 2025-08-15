@@ -35,22 +35,6 @@ public class UserController {
         return CommonResponse.success(response);
     }
 
-    @Operation(summary = "Google OAuth2 회원가입")
-    @PostMapping("/oauth2/google/signup")
-    @ResponseStatus(HttpStatus.CREATED)
-    public CommonResponse<Void> googleSignup(@RequestParam String accessToken) {
-        userService.oauth2Signup(accessToken);
-        return CommonResponse.success();
-    }
-
-    @Operation(summary = "Kakao OAuth2 회원가입")
-    @PostMapping("/oauth2/kakao/signup")
-    @ResponseStatus(HttpStatus.CREATED)
-    public CommonResponse<Void> kakaoSignup(@RequestParam String accessToken) {
-        userService.kakaoSignup(accessToken);
-        return CommonResponse.success();
-    }
-
     @Operation(summary = "사용자 검색")
     @GetMapping("/search")
     public CommonResponse<?> searchUsers(
@@ -60,5 +44,6 @@ public class UserController {
     ) {
         return CommonResponse.success(userService.searchUsersCursor(query, size, cursor));
     }
+
 }
 
