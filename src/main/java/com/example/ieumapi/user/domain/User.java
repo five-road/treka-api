@@ -1,15 +1,15 @@
 package com.example.ieumapi.user.domain;
 
+import com.example.ieumapi.global.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
-@Table(name = "`user`")
-public class User {
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class User extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
@@ -33,7 +33,6 @@ public class User {
     private String snsType;
 
     @Column(nullable = false)
-    @Builder.Default
     private boolean isGuest = false;
 
     @Enumerated(EnumType.STRING)
@@ -41,6 +40,5 @@ public class User {
     private UserRole role;
 
     @Column(nullable = false)
-    @Builder.Default
     private boolean isActive = true;
 }
