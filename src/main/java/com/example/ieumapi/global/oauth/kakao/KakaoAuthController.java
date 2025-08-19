@@ -11,10 +11,9 @@ import java.util.Map;
 public class KakaoAuthController {
     private final KakaoAuthService kakaoAuthService;
 
-    @GetMapping
-    public ResponseEntity<Map<String, String>> kakaoAuth(@RequestParam String code) {
-        Map<String, String> tokens = kakaoAuthService.kakaoLoginOrRegister(code);
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, String>> kakaoAuth(@RequestHeader("Authorization") String accessToken) {
+        Map<String, String> tokens = kakaoAuthService.kakaoLoginOrRegister(accessToken);
         return ResponseEntity.ok(tokens);
     }
 }
-

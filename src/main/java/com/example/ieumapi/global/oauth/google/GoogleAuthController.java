@@ -11,10 +11,9 @@ import java.util.Map;
 public class GoogleAuthController {
     private final GoogleAuthService googleAuthService;
 
-    @PostMapping
-    public ResponseEntity<Map<String, String>> googleAuth(@RequestParam String  code) {
-        Map<String, String> tokens = googleAuthService.googleLoginOrRegister(code);
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, String>> googleAuth(@RequestHeader("Authorization") String accessToken) {
+        Map<String, String> tokens = googleAuthService.googleLoginOrRegister(accessToken);
         return ResponseEntity.ok(tokens);
     }
 }
-
