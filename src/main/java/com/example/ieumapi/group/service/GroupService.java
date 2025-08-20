@@ -2,9 +2,7 @@ package com.example.ieumapi.group.service;
 
 import com.example.ieumapi.global.response.CursorPageResponse;
 import com.example.ieumapi.global.util.SecurityUtils;
-import com.example.ieumapi.group.domain.Group;
-import com.example.ieumapi.group.domain.GroupMember;
-import com.example.ieumapi.group.domain.MemberRole;
+import com.example.ieumapi.group.domain.*;
 import com.example.ieumapi.group.dto.*;
 import com.example.ieumapi.group.exception.GroupError;
 import com.example.ieumapi.group.exception.GroupException;
@@ -28,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,6 +48,7 @@ public class GroupService {
 
         Group group = Group.builder()
                 .name(request.getName().trim())
+                .description(request.getDescription())
                 .owner(owner)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -62,10 +62,26 @@ public class GroupService {
                 .build();
         groupMemberRepository.save(ownerMember);
 
+        String raw = UUID.randomUUID().toString();
+        String code = Base64.getUrlEncoder().withoutPadding().encodeToString(raw.getBytes());
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expires = now.plusDays(30);
+
+        GroupInvite invite = GroupInvite.builder()
+                .group(saved)
+                .fromUser(owner)
+                .toUser(null) // 링크 초대
+                .inviteCode(code)
+                .status(InviteStatus.PENDING)
+                .createdAt(now)
+                .expiresAt(expires)
+                .build();
+        groupInviteRepository.save(invite);
 
         return new GroupResponse(
                 saved.getGroupId(),
                 saved.getName(),
+                saved.getDescription(),
                 ownerId,
                 saved.getCreatedAt()
         );
@@ -89,15 +105,25 @@ public class GroupService {
         boolean hasNext = list.size() > size;
         if (hasNext) list = list.subList(0, size);
 
+        LocalDateTime now = LocalDateTime.now();
+
         List<GroupDto> data = list.stream()
                 .map(m -> {
-                    var g = m.getGroup();
+                    Group g = m.getGroup();
+                    long memberCount = groupMemberRepository.countByGroupGroupId(g.getGroupId()); // NEW
+                    String inviteCode = groupInviteRepository
+                            .findActiveLinkInvite(g) // NEW
+                            .map(GroupInvite::getInviteCode)
+                            .orElse(null);
                     return new GroupDto(
                             g.getGroupId(),
                             g.getName(),
+                            g.getDescription(),
                             g.getOwner().getUserId(),
                             g.getCreatedAt(),
-                            m.getJoinedAt()
+                            m.getJoinedAt(),
+                            inviteCode,
+                            memberCount
                     );
                 })
                 .collect(Collectors.toList());
@@ -138,6 +164,8 @@ public class GroupService {
                 .map(m -> new MemberDto(
                         m.getUser().getUserId(),
                         m.getUser().getNickName(),
+                        m.getUser().getName(),
+                        m.getUser().getEmail(),
                         m.getRole().name()
                 ))
                 .collect(Collectors.toList());
@@ -157,6 +185,7 @@ public class GroupService {
         return new GroupDetailResponse(
                 group.getGroupId(),
                 group.getName(),
+                group.getDescription(),
                 group.getOwner().getUserId(),
                 group.getCreatedAt(),
                 members,
@@ -180,12 +209,14 @@ public class GroupService {
             throw new GroupException(GroupError.INVALID_NAME);
         }
         group.setName(newName);
+        group.setDescription(req.getDescription());
 
         Group updated = groupRepository.save(group);
 
         return new GroupResponse(
                 updated.getGroupId(),
                 updated.getName(),
+                updated.getDescription(),
                 updated.getOwner().getUserId(),
                 updated.getCreatedAt()
         );
@@ -220,6 +251,8 @@ public class GroupService {
                 .map(m -> new MemberDto(
                         m.getUser().getUserId(),
                         m.getUser().getNickName(),
+                        m.getUser().getName(),
+                        m.getUser().getEmail(),
                         m.getRole().name()
                 ))
                 .collect(Collectors.toList());
@@ -245,6 +278,8 @@ public class GroupService {
         return new MemberDto(
                 member.getUser().getUserId(),
                 member.getUser().getNickName(),
+                member.getUser().getName(),
+                member.getUser().getEmail(),
                 member.getRole().name()
         );
     }

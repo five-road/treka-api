@@ -25,6 +25,9 @@ public class Group {
     @Column(nullable = false, length = 50)
     private String name;
 
+    @Column(length = 255) // nullable 허용
+    private String description;
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
@@ -54,4 +57,5 @@ public class Group {
     public void setName(String name) {
         this.name = name;
     }
+    public void setDescription(String description){this.description = description;}
 }

@@ -16,6 +16,9 @@ public class GroupResponse {
     @Schema(description = "그룹 이름", example = "여행 모임")
     private final String name;
 
+    @Schema(description = "그룹 설명", example = "여행 설명")
+    private final String description;
+
     @Schema(description = "그룹 생성자 사용자 ID", example = "123")
     private final Long ownerId;
 

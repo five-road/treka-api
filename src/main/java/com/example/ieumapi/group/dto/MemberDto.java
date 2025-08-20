@@ -14,6 +14,12 @@ public class MemberDto {
     @Schema(description = "닉네임", example = "hana_lee")
     private final String nickname;
 
+    @Schema(description = "실명", example = "이하나")
+    private final String name;
+
+    @Schema(description = "이메일", example = "hana@example.com")
+    private final String email;
+
     @Schema(description = "역할", example = "OWNER")
     private final String role;
 }

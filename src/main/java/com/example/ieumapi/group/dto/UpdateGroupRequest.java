@@ -14,4 +14,7 @@ public class UpdateGroupRequest {
     @NotBlank(message = "그룹 이름은 null이거나 공백일 수 없습니다.")
     @Schema(description = "그룹 이름", example = "새로운 여행 모임", required = true)
     private String name;
+
+    @Schema(description = "그룹 설명", example = "국내/해외 여행 모두")
+    private String description;
 }
