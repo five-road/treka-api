@@ -315,4 +315,23 @@ public class GroupService {
 
         groupMemberRepository.deleteByGroupGroupIdAndUserId(groupId, currentUserId);
     }
+
+
+    /**
+     * 현재 인증된 사용자가 속한 모든 그룹 목록을 조회합니다.
+     * <p>
+     * 이 메소드는 페이지네이션 없이 사용자가 가입한 모든 그룹의 목록을 반환합니다.
+     * 결과는 가입한 시각(joinedAt)을 기준으로 내림차순 정렬됩니다.
+     *
+     * @return 사용자가 속한 그룹 정보(GroupDto)가 담긴 리스트
+     * @throws GroupException 사용자를 찾을 수 없는 경우 (UNAUTHORIZED)
+     */
+    @Transactional(readOnly = true)
+    public List<Long> getMyGroups() {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        User currentUser = userRepository.findById(currentUserId)
+            .orElseThrow(() -> new GroupException(GroupError.UNAUTHORIZED));
+
+        return groupMemberRepository.findGroupIdsByUserOrderByJoinedAtDesc(currentUser);
+    }
 }

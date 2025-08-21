@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface WidyImageRepository extends JpaRepository<WidyImage, Long> {
     List<WidyImage> findByWidyId(Long widyId);
+
+    List<WidyImage> findByWidyIdIn(List<Long> widyIds);
 }
