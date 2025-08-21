@@ -1,16 +1,37 @@
 package com.example.ieumapi.widy.domain;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(enumAsRef = true)
 public enum WidyEmotion {
-    HAPPY,      // 0: 기쁨
-    SAD,        // 1: 슬픔
-    ANGRY,      // 2: 분노
-    EXCITED,    // 3: 신남
-    CALM,       // 4: 차분함
-    NERVOUS,    // 5: 긴장
-    BORED,      // 6: 지루함
-    SURPRISED,  // 7: 놀람
-    TIRED,      // 8: 피곤함
-    PROUD       // 9: 뿌듯함
+    SENSITIVITY("감성"),
+    TASTY_PLACE("맛집"),
+    SCENIC_PLACE("뷰맛집"),
+    OVERWHELMED("압도"),
+    SPONTANEOUS("즉흥"),
+    EXCITED("신남"),
+    HEALING("힐링");
+
+    private final String value;
+
+    WidyEmotion(String value) {
+        this.value = value;
+    }
+
+    @JsonValue
+    public String getValue() {
+        return value;
+    }
+
+    @JsonCreator
+    public static WidyEmotion from(String value) {
+        for (WidyEmotion emotion : WidyEmotion.values()) {
+            if (emotion.getValue().equals(value)) {
+                return emotion;
+            }
+        }
+        return null;
+    }
 }
-// ordinal() 값이 0부터 시작하며, 위 순서대로 0~9의 값을 가집니다.
-// 예시: WidyEmotion.HAPPY.ordinal() == 0, WidyEmotion.SAD.ordinal() == 1, ...

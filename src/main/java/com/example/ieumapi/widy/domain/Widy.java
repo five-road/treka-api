@@ -28,6 +28,9 @@ public class Widy extends BaseEntity {
     private Long userId;
     private LocalDate date;
 
+    @Enumerated(EnumType.STRING)
+    private WidyScope scope;
+
     @ElementCollection
     @Enumerated(EnumType.STRING)
     @CollectionTable(
