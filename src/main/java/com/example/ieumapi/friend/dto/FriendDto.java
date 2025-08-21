@@ -19,6 +19,9 @@ public class FriendDto {
     @Schema(description = "실명", example = "이하나")
     private final String name;
 
+    @Schema(description = "이메일", example = "hana@example.com")
+    private final String email;
+
     @Schema(description = "프로필 사진 URL", nullable = true)
     private final String imageUrl;
 

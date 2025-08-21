@@ -62,6 +62,7 @@ public class FriendService {
                             u.getUserId(),
                             u.getNickName(),
                             u.getName(),
+                            u.getEmail(),
                             u.getImageUrl(),
                             u.getSnsType(),
                             u.isGuest(),

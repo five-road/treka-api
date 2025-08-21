@@ -34,7 +34,12 @@ public class GroupInviteService {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new GroupInviteException(GroupInviteError.GROUP_NOT_FOUND));
 
-        if (!group.getOwner().getUserId().equals(currentUserId)) {
+//        if (!group.getOwner().getUserId().equals(currentUserId)) {
+//            throw new GroupInviteException(GroupInviteError.FORBIDDEN);
+//        }
+
+        boolean isMember = groupMemberRepository.existsByGroupGroupIdAndUserId(groupId, currentUserId);
+        if (!isMember) {
             throw new GroupInviteException(GroupInviteError.FORBIDDEN);
         }
 
@@ -76,8 +81,13 @@ public class GroupInviteService {
     public GroupInviteResponse createLinkInvite(Long groupId, CreateLinkInviteRequest req) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new GroupInviteException(GroupInviteError.GROUP_NOT_FOUND));
+//        Long currentUserId = SecurityUtils.getCurrentUser().getUserId();
+//        if (!group.getOwner().getUserId().equals(currentUserId)) {
+//            throw new GroupInviteException(GroupInviteError.FORBIDDEN);
+//        }
         Long currentUserId = SecurityUtils.getCurrentUser().getUserId();
-        if (!group.getOwner().getUserId().equals(currentUserId)) {
+        boolean isMember = groupMemberRepository.existsByGroupGroupIdAndUserId(groupId, currentUserId);
+        if (!isMember) {
             throw new GroupInviteException(GroupInviteError.FORBIDDEN);
         }
 
@@ -154,6 +164,7 @@ public class GroupInviteService {
                 invite.getInviteId(),
                 group.getGroupId(),
                 group.getName(),
+                group.getDescription(),
                 invite.getFromUser().getUserId(),
                 invite.getToUser() != null ? invite.getToUser().getUserId() : null,
                 invite.getInviteCode(),

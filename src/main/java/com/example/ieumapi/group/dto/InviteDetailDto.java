@@ -19,6 +19,9 @@ public class InviteDetailDto {
     @Schema(description = "그룹 이름", example = "여행 모임")
     private final String groupName;
 
+    @Schema(description = "그룹 설명", example = "여행 설명")
+    private final String groupDescription;
+
     @Schema(description = "초대 보낸 사용자 ID", example = "123")
     private final Long fromUserId;
 
