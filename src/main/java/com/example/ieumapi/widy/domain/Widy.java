@@ -21,12 +21,13 @@ public class Widy extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long widyId;
-    private Long scheduleId;
+    private Long planId;
     private Long groupId;
     private String title;
     private String content;
     private Long userId;
     private LocalDate date;
+    private String address;
 
     @Enumerated(EnumType.STRING)
     private WidyScope scope;
@@ -41,8 +42,9 @@ public class Widy extends BaseEntity {
 
 
 
-    public void update(String title, String content) {
+    public void update(String title, String content, String address) {
         this.title = title;
         this.content = content;
+        this.address = address;
     }
 }

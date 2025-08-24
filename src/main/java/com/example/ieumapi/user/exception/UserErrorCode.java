@@ -5,7 +5,9 @@ import org.springframework.http.HttpStatus;
 
 public enum UserErrorCode implements CustomError {
     USER_DUPLICATED("USER_DUPLICATED", "이미 가입된 이메일입니다.", HttpStatus.BAD_REQUEST),
-    INVALID_CREDENTIALS("INVALID_CREDENTIALS", "이메일 또는 비밀번호가 일치하지 않습니다.", HttpStatus.UNAUTHORIZED);
+    INVALID_CREDENTIALS("INVALID_CREDENTIALS", "이메일 또는 비밀번호가 일치하지 않습니다.", HttpStatus.UNAUTHORIZED),
+    USER_NOT_FOUND("USER_NOT_FOUND", "사용자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
+    INVALID_CURSOR("INVALID_CURSOR", "cursor 형식이 잘못되었습니다.", HttpStatus.BAD_REQUEST);
 
     private final String code;
     private final String message;
@@ -24,4 +26,3 @@ public enum UserErrorCode implements CustomError {
     @Override
     public HttpStatus getStatus() { return status; }
 }
-

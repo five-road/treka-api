@@ -45,5 +45,12 @@ public class UserController {
         return CommonResponse.success(userService.searchUsersCursor(query, size, cursor));
     }
 
-}
+    @Operation(summary = "회원 탈퇴")
+    @DeleteMapping("/me")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public CommonResponse<Void> deleteUser() {
+        userService.deleteUser();
+        return CommonResponse.success();
+    }
 
+}
