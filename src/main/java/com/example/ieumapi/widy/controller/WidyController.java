@@ -1,20 +1,29 @@
 package com.example.ieumapi.widy.controller;
 
 import com.example.ieumapi.global.response.CursorPageResponse;
-import com.example.ieumapi.global.util.SecurityUtils;
-import com.example.ieumapi.widy.dto.*;
+import com.example.ieumapi.widy.dto.WidyCreateRequestDto;
+import com.example.ieumapi.widy.dto.WidyResponseDto;
+import com.example.ieumapi.widy.dto.WidyUpdateRequestDto;
 import com.example.ieumapi.widy.service.WidyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
 
 @Tag(name = "Widy", description = "Widy 관련 API")
 @RestController
@@ -39,8 +48,11 @@ public class WidyController {
 
     @Operation(summary = "내 Widy 목록 조회", description = "현재 로그인한 사용자가 작성한 모든 Widy를 조회합니다.")
     @GetMapping("/me")
-    public ResponseEntity<List<WidyResponseDto>> getMyWidys() {
-        return ResponseEntity.ok(widyService.getByUserId());
+    public ResponseEntity<CursorPageResponse<WidyResponseDto>> getMyWidys(
+        @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size,
+        @RequestParam(required = false) String cursor
+    ) {
+        return ResponseEntity.ok(widyService.getMyWidysCursor(size, cursor));
     }
 
     @Operation(summary = "Widy 수정", description = "기존 Widy를 수정합니다. 본인만 수정할 수 있습니다.")

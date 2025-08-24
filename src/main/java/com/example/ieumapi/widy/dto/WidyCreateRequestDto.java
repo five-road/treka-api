@@ -26,7 +26,7 @@ public class WidyCreateRequestDto {
     private String content;
 
     @Schema(description = "일정 ID", example = "10")
-    private Long scheduleId;
+    private Long planId;
 
     @Schema(description = "그룹 ID (scope가 GROUP일 경우 필수)", example = "5")
     private Long groupId;
@@ -41,16 +41,20 @@ public class WidyCreateRequestDto {
     @Schema(description = "공개 범위", example = "PUBLIC")
     private WidyScope scope;
 
+    @Schema(description = "주소", example = "서울시 강남구")
+    private String address;
+
     public Widy toEntity() {
         return Widy.builder()
             .userId(userId)
             .title(title)
             .content(content)
-            .scheduleId(scheduleId)
+            .planId(planId)
             .groupId(groupId)
             .date(date)
             .widyEmotionList(emotions)
             .scope(scope)
+            .address(address)
             .build();
     }
 }

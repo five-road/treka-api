@@ -75,6 +75,7 @@ public class WidyService {
             .widyId(widyId)
             .title(savedWidy.getTitle())
             .content(savedWidy.getContent())
+            .address(savedWidy.getAddress())
             .images(uploadedImages)
             .build();
     }
@@ -93,7 +94,7 @@ public class WidyService {
             throw new WidyException(WidyErrorCode.GROUP_ID_REQUIRED);
         }
 
-        widy.update(dto.getTitle(), dto.getContent());
+        widy.update(dto.getTitle(), dto.getContent(), dto.getAddress());
         // DB에서 이미지를 다시 조회하는 헬퍼 메소드 호출
         return mapToWidyResponseDto(widy);
     }
@@ -125,51 +126,52 @@ public class WidyService {
             throw new WidyException(WidyErrorCode.FORBIDDEN);
         }
 
-        List<WidyImage> widyImages = widyImageRepository.findByWidyId(widyId);
-
-        List<UploadImageResDto> imageDtos = widyImages.stream()
-            .map(image -> UploadImageResDto.builder()
-                .id(image.getId())
-                .originalName(image.getOriginalName())
-                .storedName(image.getStoredName())
-                .url(image.getUrl())
-                .build())
-            .collect(Collectors.toList());
-
-        return WidyResponseDto.builder()
-            .widyId(widy.getWidyId())
-            .title(widy.getTitle())
-            .content(widy.getContent())
-            .images(imageDtos)
-            .build();
+        return mapToWidyResponseDto(widy);
     }
 
     @Transactional(readOnly = true)
-    public List<WidyResponseDto> getByUserId() {
-
+    public CursorPageResponse<WidyResponseDto> getMyWidysCursor(int size, String cursor) {
         Long userId = SecurityUtils.getCurrentUserId();
-        // 1. 사용자의 모든 Widy를 조회
-        List<Widy> widys = widyRepository.findByUserId(userId);
-        if (widys.isEmpty()) {
-            return Collections.emptyList();
+
+        long cursorMillis = decodeCursor(cursor);
+        LocalDateTime cursorTime = (cursorMillis <= 0)
+            ? LocalDateTime.now()
+            : LocalDateTime.ofInstant(Instant.ofEpochMilli(cursorMillis), ZoneOffset.UTC);
+
+        Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "createdAt"));
+        List<Widy> widys = widyRepository
+            .findByUserIdAndCreatedAtLessThanOrderByCreatedAtDesc(userId, cursorTime, pageable);
+
+        boolean hasNext = widys.size() > size;
+        if (hasNext) {
+            widys = widys.subList(0, size);
         }
 
-        // 2. Widy ID 목록 추출
         List<Long> widyIds = widys.stream()
             .map(Widy::getWidyId)
             .collect(Collectors.toList());
 
-        // 3. 모든 관련 이미지를 한 번의 쿼리로 조회 후, Widy ID별로 그룹핑
-        Map<Long, List<WidyImage>> imagesByWidyId = widyImageRepository.findByWidyIdIn(widyIds).stream()
-            .collect(Collectors.groupingBy(WidyImage::getWidyId));
+        Map<Long, List<WidyImage>> imagesByWidyId = widyIds.isEmpty()
+            ? Collections.emptyMap()
+            : widyImageRepository.findByWidyIdIn(widyIds).stream()
+                .collect(Collectors.groupingBy(WidyImage::getWidyId));
 
-        // 4. DTO로 변환 (DB 추가 조회 없음)
-        return widys.stream()
+        List<WidyResponseDto> data = widys.stream()
             .map(widy -> {
-                List<WidyImage> images = imagesByWidyId.getOrDefault(widy.getWidyId(), Collections.emptyList());
-                return mapToWidyResponseDto(widy, images);
+                List<WidyImage> widyImages = imagesByWidyId.getOrDefault(widy.getWidyId(), Collections.emptyList());
+                return mapToWidyResponseDto(widy, widyImages);
             })
             .collect(Collectors.toList());
+
+        String nextCursor = null;
+        if (hasNext) {
+            long lastMillis = widys.get(widys.size() - 1)
+                .getCreatedAt().toInstant(ZoneOffset.UTC).toEpochMilli();
+            nextCursor = Base64.getEncoder()
+                .encodeToString(String.valueOf(lastMillis).getBytes(StandardCharsets.UTF_8));
+        }
+
+        return new CursorPageResponse<>(data, nextCursor, hasNext);
     }
 
     @Transactional(readOnly = true)
@@ -315,6 +317,7 @@ public class WidyService {
             .widyId(widy.getWidyId())
             .title(widy.getTitle())
             .content(widy.getContent())
+            .address(widy.getAddress())
             .images(imageDtos)
             .build();
     }

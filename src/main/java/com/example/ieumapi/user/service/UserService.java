@@ -1,6 +1,7 @@
 package com.example.ieumapi.user.service;
 
 import com.example.ieumapi.global.response.CursorPageResponse;
+import com.example.ieumapi.global.util.SecurityUtils;
 import com.example.ieumapi.user.domain.User;
 import com.example.ieumapi.user.dto.UserSearchResultDto;
 import com.example.ieumapi.user.dto.UserSignupRequest;
@@ -13,18 +14,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.example.ieumapi.user.exception.UserErrorCode.INVALID_CREDENTIALS;
-import static com.example.ieumapi.user.exception.UserErrorCode.USER_DUPLICATED;
+import static com.example.ieumapi.user.exception.UserErrorCode.*;
 import static com.example.ieumapi.user.domain.UserRole.ROLE_USER;
 
 @Service
@@ -98,6 +96,15 @@ public class UserService {
         return new CursorPageResponse<>(data, nextCursor, hasNext);
     }
 
+    @Transactional
+    public void deleteUser() {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        User user = userRepository.findByUserId(currentUserId)
+                .orElseThrow(() -> new UserException(USER_NOT_FOUND));
+        user.deactivate();
+        userRepository.save(user);
+    }
+
     private long decodeCursor(String cursor) {
         if (cursor == null || cursor.isBlank()) {
             return 0L;
@@ -106,7 +113,7 @@ public class UserService {
             String decoded = new String(Base64.getDecoder().decode(cursor), StandardCharsets.UTF_8);
             return Long.parseLong(decoded);
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "cursor 형식이 잘못되었습니다.");
+            throw new UserException(INVALID_CURSOR);
         }
     }
 }

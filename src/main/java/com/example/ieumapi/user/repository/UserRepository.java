@@ -11,6 +11,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
+    Optional<User> findByUserId(Long userId);
+
     boolean existsByEmail(String email);
 
     List<User> findByNickNameContainingIgnoreCaseOrNameContainingIgnoreCaseAndUserIdGreaterThanOrderByUserIdAsc(
@@ -20,4 +22,3 @@ public interface UserRepository extends JpaRepository<User, Long> {
             Pageable pageable
     );
 }
-

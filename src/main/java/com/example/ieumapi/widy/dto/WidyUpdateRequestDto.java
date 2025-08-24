@@ -25,7 +25,7 @@ public class WidyUpdateRequestDto {
     private String content;
 
     @Schema(description = "일정 ID", example = "11")
-    private Long scheduleId;
+    private Long planId;
 
     @Schema(description = "그룹 ID (scope가 GROUP일 경우 필수)", example = "6")
     private Long groupId;
@@ -41,4 +41,7 @@ public class WidyUpdateRequestDto {
 
     @Schema(description = "공개 범위", example = "GROUP")
     private WidyScope scope;
+
+    @Schema(description = "주소", example = "서울시 강남구")
+    private String address;
 }
