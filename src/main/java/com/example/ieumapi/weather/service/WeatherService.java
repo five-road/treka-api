@@ -1,112 +1,114 @@
 package com.example.ieumapi.weather.service;
 
 import com.example.ieumapi.weather.client.WeatherApiClient;
-import com.example.ieumapi.weather.dto.WeatherInfo;
 import com.example.ieumapi.weather.dto.WeatherItem;
 import com.example.ieumapi.weather.dto.WeatherResponse;
+import com.example.ieumapi.weather.dto.WeatherResponseDto;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class WeatherService {
-
-    @Value("${weather.api.key}")
-    private String apiKey;
 
     private final WeatherApiClient weatherApiClient;
 
-    public WeatherService(WeatherApiClient weatherApiClient) {
-        this.weatherApiClient = weatherApiClient;
-    }
+    @Value("${api.kma.service-key}")
+    private String serviceKey;
 
-    public WeatherInfo getShortTermForecast(String nx, String ny) {
+    public WeatherResponseDto getWeather() {
         LocalDateTime now = LocalDateTime.now();
+        String baseDate = getBaseDate(now);
+        String baseTime = getBaseTime(now);
 
-        // API 데이터가 보통 40-45분 사이에 생성되므로, 안정적인 조회를 위해 현재 시간이 45분 미만이면 1시간을 빼줍니다.
-        if (now.getMinute() < 45) {
-            now = now.minusHours(1);
+        if ("2300".equals(baseTime)) {
+            baseDate = getBaseDate(now.minusDays(1));
         }
 
-        String baseDate = now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        // 초단기 실황 API는 정시(HH00)를 기준으로 데이터를 제공합니다.
-        String baseTime = now.format(DateTimeFormatter.ofPattern("HH00"));
+        WeatherResponse weatherResponse = weatherApiClient.getVilageFcst(serviceKey, 1, 1000, "JSON",
+                baseDate, baseTime, 55, 38);
 
-        WeatherResponse response = weatherApiClient.getShortTermForecast(apiKey, 1, 1000, "JSON", baseDate, baseTime, nx, ny);
-
-        return extractWeatherInfo(response);
+        return extractWeatherInfo(weatherResponse);
     }
 
-    private WeatherInfo extractWeatherInfo(WeatherResponse response) {
-        if (response == null || response.getBody() == null || response.getBody().getItems() == null) {
-            return WeatherInfo.builder().build(); // 빈 WeatherInfo 객체 반환
+    private WeatherResponseDto extractWeatherInfo(WeatherResponse weatherResponse) {
+        if (weatherResponse == null || weatherResponse.getResponse() == null || weatherResponse.getResponse().getBody() == null || weatherResponse.getResponse().getBody().getItems() == null || CollectionUtils.isEmpty(weatherResponse.getResponse().getBody().getItems().getItem())) {
+            return new WeatherResponseDto(null, null, null);
         }
 
-        List<WeatherItem> items = response.getBody().getItems().getItem();
-        String temperature = null;
-        String precipitationProbability = null;
-        String skyStatus = null;
-        String precipitationType = "없음"; // 강수형태가 없는 경우 기본값
+        List<WeatherItem> items = weatherResponse.getResponse().getBody().getItems().getItem();
 
-        for (WeatherItem item : items) {
-            switch (item.getCategory()) {
-                case "T1H": // 기온 (TA)
-                    temperature = item.getFcstValue();
-                    break;
-                case "POP": // 강수확률 (ST)
-                    precipitationProbability = item.getFcstValue();
-                    break;
-                case "SKY": // 하늘 상태
-                    skyStatus = getSkyStatusString(item.getFcstValue());
-                    break;
-                case "PTY": // 강수 형태 (PREP)
-                    precipitationType = getPrecipitationTypeString(item.getFcstValue());
-                    break;
-            }
-        }
+        String temperature = items.stream()
+                .filter(item -> "TMP".equals(item.getCategory()))
+                .map(WeatherItem::getFcstValue)
+                .findFirst()
+                .orElse(null);
 
-        return WeatherInfo.builder()
-                .temperature(temperature)
-                .precipitationProbability(precipitationProbability)
-                .skyStatus(skyStatus)
-                .precipitationType(precipitationType)
-                .build();
+        String skyCondition = items.stream()
+                .filter(item -> "SKY".equals(item.getCategory()))
+                .map(WeatherItem::getFcstValue)
+                .map(this::toSkyConditionString)
+                .findFirst()
+                .orElse(null);
+
+        String precipitationProbability = items.stream()
+                .filter(item -> "POP".equals(item.getCategory()))
+                .map(WeatherItem::getFcstValue)
+                .findFirst()
+                .orElse(null);
+
+        return new WeatherResponseDto(
+                temperature,
+                skyCondition,
+                precipitationProbability
+        );
     }
 
-    private String getSkyStatusString(String skyCode) {
-        if (skyCode == null) return "정보 없음";
-        switch (skyCode) {
-            case "1":
-                return "맑음";
-            case "2":
-                return "구름조금";
-            case "3":
-                return "구름많음";
-            case "4":
-                return "흐림";
-            default:
-                return "정보 없음";
-        }
+    private String toSkyConditionString(String skyCode) {
+        if (skyCode == null) return null;
+        return switch (skyCode) {
+            case "1" -> "맑음";
+            case "3" -> "구름많음";
+            case "4" -> "흐림";
+            default -> "알 수 없음";
+        };
     }
 
-    private String getPrecipitationTypeString(String ptyCode) {
-        if (ptyCode == null) return "없음";
-        switch (ptyCode) {
-            case "0":
-                return "없음";
-            case "1":
-                return "비";
-            case "2":
-                return "비/눈";
-            case "3":
-                return "눈";
-            case "4":
-                return "눈/비";
-            default:
-                return "정보 없음";
+
+    private String getBaseDate(LocalDateTime now) {
+        return now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+    }
+
+    private String getBaseTime(LocalDateTime now) {
+        LocalTime nowTime = now.toLocalTime();
+        int hour = nowTime.getHour();
+        int minute = nowTime.getMinute();
+
+        if (hour < 2 || (hour == 2 && minute <= 10)) {
+            return "2300"; // 전날 23시
+        } else if (hour < 5 || (hour == 5 && minute <= 10)) {
+            return "0200";
+        } else if (hour < 8 || (hour == 8 && minute <= 10)) {
+            return "0500";
+        } else if (hour < 11 || (hour == 11 && minute <= 10)) {
+            return "0800";
+        } else if (hour < 14 || (hour == 14 && minute <= 10)) {
+            return "1100";
+        } else if (hour < 17 || (hour == 17 && minute <= 10)) {
+            return "1400";
+        } else if (hour < 20 || (hour == 20 && minute <= 10)) {
+            return "1700";
+        } else if (hour < 23 || minute <= 10) {
+            return "2000";
+        } else {
+            return "2300";
         }
     }
 }
