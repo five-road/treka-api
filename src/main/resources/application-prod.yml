@@ -24,9 +24,11 @@ file:
   storage:
     url: http://localhost:8081/image
 
-weather:
-  api:
-    key: ${WEATHER_API_KEY}
+api:
+  kma:
+    base-url: http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst
+    service-key: ${WEATHER_API_KEY}
+
 
 #logging:
 #  level:
