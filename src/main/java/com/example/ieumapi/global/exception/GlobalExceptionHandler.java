@@ -1,6 +1,5 @@
 package com.example.ieumapi.global.exception;
 
-import com.example.ieumapi.user.dto.UserSignupResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,11 +29,11 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
-        @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception ex) {
-        log.error("예상치 못한 서버 오류 발생", ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
-    }
+//    @ExceptionHandler(Exception.class)
+//    public ResponseEntity<ErrorResponse> handleException(Exception ex) {
+//        log.error("예상치 못한 서버 오류 발생", ex);
+//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                .body(new ErrorResponse("INTERNAL_SERVER_ERROR", "서버 오류가 발생했습니다."));
+//    }
 
 }
