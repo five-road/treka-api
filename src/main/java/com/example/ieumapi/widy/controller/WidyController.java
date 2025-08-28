@@ -1,11 +1,16 @@
 package com.example.ieumapi.widy.controller;
 
 import com.example.ieumapi.global.response.CursorPageResponse;
+import com.example.ieumapi.widy.dto.RecentWidyResponseDto;
+import com.example.ieumapi.widy.dto.WidyCountResponseDto;
 import com.example.ieumapi.widy.dto.WidyCreateRequestDto;
 import com.example.ieumapi.widy.dto.WidyResponseDto;
 import com.example.ieumapi.widy.dto.WidyUpdateRequestDto;
 import com.example.ieumapi.widy.service.WidyService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -86,5 +91,18 @@ public class WidyController {
         @RequestParam(required = false) String cursor
     ) {
         return ResponseEntity.ok(widyService.getGroupFeedCursor(size, cursor));
+    }
+
+    @Operation(summary = "나와 관련된 위디 총 개수 조회")
+    @GetMapping("/count")
+    public ResponseEntity<WidyCountResponseDto> getVisibleWidyCount() {
+        return ResponseEntity.ok(widyService.getVisibleWidyCount());
+    }
+
+    @Operation(summary = "나와 관련된 최근 위디 조회", description = "최근 한 달 동안 나와 관련된 위디를 최대 7개까지 조회합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = RecentWidyResponseDto.class)))
+    @GetMapping("/recent")
+    public ResponseEntity<List<RecentWidyResponseDto>> getRecentVisibleWidys() {
+        return ResponseEntity.ok(widyService.getRecentVisibleWidys());
     }
 }

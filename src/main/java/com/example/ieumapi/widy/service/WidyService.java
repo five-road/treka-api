@@ -4,10 +4,16 @@ import com.example.ieumapi.file.FileStorageClient;
 import com.example.ieumapi.file.dto.UploadImageResDto;
 import com.example.ieumapi.global.response.CursorPageResponse;
 import com.example.ieumapi.global.util.SecurityUtils;
+import com.example.ieumapi.group.domain.Group;
+import com.example.ieumapi.group.repository.GroupRepository;
 import com.example.ieumapi.group.service.GroupService;
+import com.example.ieumapi.plan.domain.Plan;
+import com.example.ieumapi.plan.repository.PlanRepository;
 import com.example.ieumapi.widy.domain.Widy;
 import com.example.ieumapi.widy.domain.WidyImage;
 import com.example.ieumapi.widy.domain.WidyScope;
+import com.example.ieumapi.widy.dto.RecentWidyResponseDto;
+import com.example.ieumapi.widy.dto.WidyCountResponseDto;
 import com.example.ieumapi.widy.dto.WidyCreateRequestDto;
 import com.example.ieumapi.widy.dto.WidyResponseDto;
 import com.example.ieumapi.widy.dto.WidyUpdateRequestDto;
@@ -17,12 +23,15 @@ import com.example.ieumapi.widy.repository.WidyImageRepository;
 import com.example.ieumapi.widy.repository.WidyRepository;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -43,6 +52,8 @@ public class WidyService {
     private final WidyImageRepository widyImageRepository;
     private final GroupService groupService;
     private final FileStorageClient fileStorageClient;
+    private final PlanRepository planRepository;
+    private final GroupRepository groupRepository;
 
     public WidyResponseDto createWidy(WidyCreateRequestDto requestDto, List<MultipartFile> images) {
         // Scope validation
@@ -142,6 +153,11 @@ public class WidyService {
         List<Widy> widys = widyRepository
             .findByUserIdAndCreatedAtLessThanOrderByCreatedAtDesc(userId, cursorTime, pageable);
 
+        return getWidyResponseDtoCursorPageResponse(size, widys);
+    }
+
+    private CursorPageResponse<WidyResponseDto> getWidyResponseDtoCursorPageResponse(int size,
+        List<Widy> widys) {
         boolean hasNext = widys.size() > size;
         if (hasNext) {
             widys = widys.subList(0, size);
@@ -186,38 +202,7 @@ public class WidyService {
         List<Widy> widys = widyRepository
             .findByScopeAndCreatedAtLessThanOrderByCreatedAtDesc(WidyScope.PUBLIC, cursorTime, pageable);
 
-        boolean hasNext = widys.size() > size;
-        if (hasNext) {
-            widys = widys.subList(0, size);
-        }
-
-        // --- N+1 문제 해결을 위한 최적화 로직 (기존과 동일) ---
-        List<Long> widyIds = widys.stream()
-            .map(Widy::getWidyId)
-            .collect(Collectors.toList());
-
-        Map<Long, List<WidyImage>> imagesByWidyId = widyIds.isEmpty()
-            ? Collections.emptyMap()
-            : widyImageRepository.findByWidyIdIn(widyIds).stream()
-                .collect(Collectors.groupingBy(WidyImage::getWidyId));
-
-        List<WidyResponseDto> data = widys.stream()
-            .map(widy -> {
-                List<WidyImage> widyImages = imagesByWidyId.getOrDefault(widy.getWidyId(), Collections.emptyList());
-                return mapToWidyResponseDto(widy, widyImages);
-            })
-            .collect(Collectors.toList());
-
-        // --- 다음 커서 생성 (기존과 동일) ---
-        String nextCursor = null;
-        if (hasNext) {
-            long lastMillis = widys.get(widys.size() - 1)
-                .getCreatedAt().toInstant(ZoneOffset.UTC).toEpochMilli();
-            nextCursor = Base64.getEncoder()
-                .encodeToString(String.valueOf(lastMillis).getBytes(StandardCharsets.UTF_8));
-        }
-
-        return new CursorPageResponse<>(data, nextCursor, hasNext);
+        return getWidyResponseDtoCursorPageResponse(size, widys);
     }
 
     @Transactional(readOnly = true)
@@ -241,38 +226,69 @@ public class WidyService {
         List<Widy> widys = widyRepository
             .findByGroupIdInAndCreatedAtLessThanOrderByCreatedAtDesc(groupIds, cursorTime, pageable);
 
-        boolean hasNext = widys.size() > size;
-        if (hasNext) {
-            widys = widys.subList(0, size);
+        return getWidyResponseDtoCursorPageResponse(size, widys);
+    }
+
+    @Transactional(readOnly = true)
+    public WidyCountResponseDto getVisibleWidyCount() {
+        Long userId = SecurityUtils.getCurrentUserId();
+        List<Long> groupIds = Optional.ofNullable(groupService.getMyGroups()).orElse(Collections.emptyList());
+        long count = widyRepository.countVisibleWidysForUser(userId, groupIds);
+        return new WidyCountResponseDto(count);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RecentWidyResponseDto> getRecentVisibleWidys() {
+        Long userId = SecurityUtils.getCurrentUserId();
+        List<Long> groupIds = Optional.ofNullable(groupService.getMyGroups()).orElse(Collections.emptyList());
+
+        LocalDateTime startDateTime = LocalDate.now().minusMonths(1).atStartOfDay();
+        Pageable pageable = PageRequest.of(0, 7);
+
+        List<Widy> widys = widyRepository.findVisibleWidysForUser(userId, groupIds, startDateTime, pageable);
+
+        if (widys.isEmpty()) {
+            return Collections.emptyList();
         }
 
-        // 5. N+1 문제 해결을 위한 최적화 로직
-        List<Long> widyIds = widys.stream()
-            .map(Widy::getWidyId)
+        // N+1 방지를 위해 필요한 plan, group 정보를 한번에 조회
+        List<Long> planIds = widys.stream()
+            .map(Widy::getPlanId)
+            .filter(Objects::nonNull)
+            .distinct()
             .collect(Collectors.toList());
 
-        Map<Long, List<WidyImage>> imagesByWidyId = widyIds.isEmpty()
-            ? Collections.emptyMap()
-            : widyImageRepository.findByWidyIdIn(widyIds).stream()
-                .collect(Collectors.groupingBy(WidyImage::getWidyId));
+        Map<Long, String> planIdToNameMap = planIds.isEmpty() ? Collections.emptyMap() :
+            planRepository.findAllById(planIds).stream()
+                .collect(Collectors.toMap(Plan::getPlanId, Plan::getTitle));
 
-        List<WidyResponseDto> data = widys.stream()
+        List<Long> groupIdsForName = widys.stream()
+            .map(Widy::getGroupId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .collect(Collectors.toList());
+
+        Map<Long, String> groupIdToNameMap = groupIdsForName.isEmpty() ? Collections.emptyMap() :
+            groupRepository.findAllById(groupIdsForName).stream()
+                .collect(Collectors.toMap(Group::getGroupId, Group::getName));
+
+        return widys.stream()
             .map(widy -> {
-                List<WidyImage> widyImages = imagesByWidyId.getOrDefault(widy.getWidyId(), Collections.emptyList());
-                return mapToWidyResponseDto(widy, widyImages);
+                String planName = Optional.ofNullable(widy.getPlanId())
+                    .map(planIdToNameMap::get)
+                    .orElse("연결된 일정 없음");
+                String groupName = Optional.ofNullable(widy.getGroupId())
+                    .map(groupIdToNameMap::get)
+                    .orElse("연결된 그룹 없음");
+
+                return RecentWidyResponseDto.builder()
+                    .widyId(widy.getWidyId())
+                    .title(widy.getTitle())
+                    .planName(planName)
+                    .groupName(groupName)
+                    .build();
             })
             .collect(Collectors.toList());
-
-        // 6. 다음 커서 생성
-        String nextCursor = null;
-        if (hasNext) {
-            long lastMillis = widys.get(widys.size() - 1)
-                .getCreatedAt().toInstant(ZoneOffset.UTC).toEpochMilli();
-            nextCursor = Base64.getEncoder()
-                .encodeToString(String.valueOf(lastMillis).getBytes(StandardCharsets.UTF_8));
-        }
-
-        return new CursorPageResponse<>(data, nextCursor, hasNext);
     }
 
     // ==================== 추가된 헬퍼 메소드들 ====================
