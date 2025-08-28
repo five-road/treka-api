@@ -1,7 +1,7 @@
 package com.example.ieumapi.global.response;
 
 import com.example.ieumapi.global.exception.ErrorResponse;
-import jakarta.servlet.http.HttpServletRequest;
+
 import org.slf4j.Logger;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
@@ -11,11 +11,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
-
 import java.lang.reflect.Method;
-
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 @RestControllerAdvice
 public class CommonResponseAdvice implements ResponseBodyAdvice<Object> {

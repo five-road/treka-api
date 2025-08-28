@@ -8,6 +8,7 @@ import com.example.ieumapi.widy.dto.WidyResponseDto;
 import com.example.ieumapi.widy.dto.WidyUpdateRequestDto;
 import com.example.ieumapi.widy.service.WidyService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,6 +18,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,10 +39,12 @@ import org.springframework.web.multipart.MultipartFile;
 public class WidyController {
     private final WidyService widyService;
 
-    @Operation(summary = "Widy 생성", description = "새로운 Widy를 생성합니다.")
-    @PostMapping()
-    public ResponseEntity<WidyResponseDto> create(@RequestPart("widy") @Valid WidyCreateRequestDto request
-    , @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+    @Operation(summary = "위디 생성", description = "새로운 위디를 생성합니다. (이미지 포함)")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<WidyResponseDto> create(
+        @Parameter(description = "위디 생성 정보 (JSON 형식)") @RequestPart("widy") @Valid WidyCreateRequestDto request,
+        @Parameter(description = "업로드할 이미지 파일 목록") @RequestPart(value = "images", required = false) List<MultipartFile> images
+    ) {
         WidyResponseDto widyResponseDto = widyService.createWidy(request, images);
         return ResponseEntity.ok(widyResponseDto);
     }

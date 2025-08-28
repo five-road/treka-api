@@ -3,6 +3,7 @@ package com.example.ieumapi.widy.dto;
 import com.example.ieumapi.widy.domain.Widy;
 import com.example.ieumapi.widy.domain.WidyEmotion;
 import com.example.ieumapi.widy.domain.WidyScope;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
 import java.util.Set;
@@ -32,9 +33,10 @@ public class WidyCreateRequestDto {
     private Long groupId;
 
     @Schema(description = "날짜", example = "2024-07-24")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
     private LocalDate date;
 
-    @Schema(description = "감정 목록", example = "[맛집, 신남]")
+    @Schema(description = "감정 목록", example = "[\"SENSITIVITY\",\"TASTY_PLACE\",\"SCENIC_PLACE\",\"EXCITED\",\"VERWHELMED\",\"SPONTANEOUS\",\"EXCITED\",\"HEALING\"]")
     @NotEmpty
     private Set<WidyEmotion> emotions;
 
@@ -53,7 +55,7 @@ public class WidyCreateRequestDto {
             .groupId(groupId)
             .date(date)
             .widyEmotionList(emotions)
-            .scope(scope)
+            .scope(scope == null ? WidyScope.PRIVATE : scope)
             .address(address)
             .build();
     }

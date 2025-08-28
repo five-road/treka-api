@@ -36,9 +36,6 @@ public class SecurityConfig {
                         ).permitAll()
                         .anyRequest().permitAll()
                 )
-                //.oauth2Login(oauth2 -> oauth2
-                //        .successHandler(oAuth2SuccessHandler)
-                //)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
