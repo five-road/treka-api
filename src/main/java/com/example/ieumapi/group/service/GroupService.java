@@ -90,9 +90,14 @@ public class GroupService {
     @Transactional
     public CursorPageResponse<GroupDto> getMyGroupsCursor(int size, String cursor) {
         long cursorMillis = decodeCursor(cursor);
-        LocalDateTime cursorTime = (cursorMillis <= 0)
-                ? LocalDateTime.now()
-                : LocalDateTime.ofInstant(Instant.ofEpochMilli(cursorMillis), ZoneOffset.UTC);
+        long clampMillis = Math.min(cursorMillis, System.currentTimeMillis());
+//        LocalDateTime cursorTime = (cursorMillis <= 0)
+//                ? LocalDateTime.now()
+//                : LocalDateTime.ofInstant(Instant.ofEpochMilli(cursorMillis), ZoneOffset.UTC);
+        LocalDateTime cursorTime = LocalDateTime.ofInstant(
+                Instant.ofEpochMilli(clampMillis),
+                ZoneOffset.systemDefault()
+        );
 
         Long currentUserId = SecurityUtils.getCurrentUserId();
         User me = userRepository.findById(currentUserId)
@@ -104,8 +109,6 @@ public class GroupService {
 
         boolean hasNext = list.size() > size;
         if (hasNext) list = list.subList(0, size);
-
-        LocalDateTime now = LocalDateTime.now();
 
         List<GroupDto> data = list.stream()
                 .map(m -> {
@@ -140,7 +143,7 @@ public class GroupService {
     }
 
     private long decodeCursor(String cursor) {
-        if (cursor == null || cursor.isBlank()) return 0L;
+        if (cursor == null || cursor.isBlank()) return System.currentTimeMillis();
         try {
             String decoded = new String(Base64.getDecoder().decode(cursor), StandardCharsets.UTF_8);
             return Long.parseLong(decoded);
