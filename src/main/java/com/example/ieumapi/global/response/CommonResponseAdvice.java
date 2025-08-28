@@ -4,6 +4,7 @@ import com.example.ieumapi.global.exception.ErrorResponse;
 
 import org.slf4j.Logger;
 import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServletServerHttpRequest;
@@ -37,6 +38,15 @@ public class CommonResponseAdvice implements ResponseBodyAdvice<Object> {
                                   org.springframework.http.server.ServerHttpResponse response) {
 
         if (body instanceof ErrorResponse) {
+            return body;
+        }
+
+        int status = 200;
+        if(response instanceof org.springframework.http.server.ServletServerHttpResponse srv){
+            status = srv.getServletResponse().getStatus();
+        }
+
+        if (status == HttpStatus.NO_CONTENT.value() || status >= 400) {
             return body;
         }
 
