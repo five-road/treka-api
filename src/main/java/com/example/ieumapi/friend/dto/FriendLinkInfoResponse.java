@@ -10,5 +10,8 @@ public record FriendLinkInfoResponse(
         LocalDateTime createdAt,
         LocalDateTime expiresAt,
         Long fromUserId,
-        Long toUserId
+        Long toUserId,
+        String toUserName,
+        String toUserNickName,
+        String toUserProfileImage
 ) {}

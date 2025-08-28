@@ -62,7 +62,10 @@ public class FriendRequestLinkService {
                 link.getCreatedAt(),
                 link.getExpiresAt(),
                 link.getFromUser().getUserId(),
-                link.getToUser()!=null ? link.getToUser().getUserId() : null
+                link.getToUser()!=null ? link.getToUser().getUserId() : null,
+                link.getToUser()!=null ? link.getToUser().getName():null,
+                link.getToUser()!=null?link.getToUser().getNickName():null,
+                link.getToUser()!=null?link.getToUser().getImageUrl():null
         );
     }
 
@@ -79,7 +82,10 @@ public class FriendRequestLinkService {
                 link.getCreatedAt(),
                 link.getExpiresAt(),
                 link.getFromUser().getUserId(),
-                link.getToUser()!=null ? link.getToUser().getUserId() : null
+                link.getToUser()!=null ? link.getToUser().getUserId() : null,
+                link.getToUser()!=null ? link.getToUser().getName():null,
+                link.getToUser()!=null ? link.getToUser().getNickName():null,
+                link.getToUser()!=null?link.getToUser().getImageUrl():null
         );
     }
 
