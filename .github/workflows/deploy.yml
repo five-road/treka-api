@@ -73,6 +73,7 @@ jobs:
               -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
               -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
               -e WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }} \
+              -e TOUR_API_KEY=${{ secrets.TOUR_API_KEY }} \
               ${{ secrets.DOCKER_REPO }}:0.0.1
             docker logs -f odo &> odo.log &
 
