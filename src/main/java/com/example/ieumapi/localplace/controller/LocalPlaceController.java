@@ -6,6 +6,7 @@ import com.example.ieumapi.localplace.dto.LocalPlaceUpdateRequest;
 import com.example.ieumapi.localplace.service.LocalPlaceService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,7 +27,7 @@ public class LocalPlaceController {
     }
 
     @Operation(summary = "로컬 장소 생성")
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<LocalPlaceResponse> createPlace(@RequestPart("request") LocalPlaceCreateRequest request,
                                                           @RequestPart(value = "images", required = false) List<MultipartFile> images) {
         return ResponseEntity.ok(localPlaceService.createPlace(request, images));
@@ -39,9 +40,11 @@ public class LocalPlaceController {
     }
 
     @Operation(summary = "로컬 장소 정보 수정")
-    @PatchMapping("/{id}")
-    public ResponseEntity<LocalPlaceResponse> updatePlace(@PathVariable("id") Long placeId, @RequestBody LocalPlaceUpdateRequest request) {
-        return ResponseEntity.ok(localPlaceService.updatePlace(placeId, request));
+    @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<LocalPlaceResponse> updatePlace(@PathVariable("id") Long placeId,
+                                                          @RequestPart("request") LocalPlaceUpdateRequest request,
+                                                          @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+        return ResponseEntity.ok(localPlaceService.updatePlace(placeId, request, images));
     }
 
     @Operation(summary = "로컬 장소 삭제")

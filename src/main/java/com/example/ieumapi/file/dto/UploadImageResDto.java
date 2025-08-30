@@ -17,5 +17,4 @@ public class UploadImageResDto {
     private String storedName;
     private String url;
 
-
 }
