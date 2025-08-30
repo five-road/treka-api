@@ -12,9 +12,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface WidyRepository extends JpaRepository<Widy, Long> {
-    List<Widy> findByUserId(Long userId);
+
+
     List<Widy> findByScopeAndCreatedAtLessThanOrderByCreatedAtDesc(WidyScope scope, LocalDateTime createdAt, Pageable pageable);
     List<Widy> findByGroupIdInAndCreatedAtLessThanOrderByCreatedAtDesc(List<Long> groupIds, LocalDateTime createdAt, Pageable pageable);
+
+    List<Widy> findByUserIdAndScopeAndCreatedAtLessThanOrderByCreatedAtDesc(Long userId, WidyScope scope,LocalDateTime createdAt, Pageable pageable);
     List<Widy> findByUserIdAndCreatedAtLessThanOrderByCreatedAtDesc(Long userId, LocalDateTime createdAt, Pageable pageable);
 
     @Query("SELECT COUNT(DISTINCT w.widyId) FROM Widy w WHERE w.userId = :userId OR w.groupId IN :groupIds")
@@ -22,4 +25,5 @@ public interface WidyRepository extends JpaRepository<Widy, Long> {
 
     @Query("SELECT w FROM Widy w WHERE (w.userId = :userId OR w.groupId IN :groupIds) AND w.createdAt >= :startDateTime ORDER BY w.createdAt DESC")
     List<Widy> findVisibleWidysForUser(@Param("userId") Long userId, @Param("groupIds") List<Long> groupIds, @Param("startDateTime") LocalDateTime startDateTime, Pageable pageable);
+
 }
