@@ -1,0 +1,27 @@
+name: Sync GitHub Labels
+
+on:
+  push:
+    paths:
+      - '.github/labels.yml'
+  workflow_dispatch: # 수동 실행도 가능
+
+jobs:
+  label-sync:
+    runs-on: ubuntu-latest
+    permissions:
+      # 설정 파일(.github/labels.yml)을 읽기 위한 권한
+      contents: read
+      # 라벨을 생성하고 수정하기 위한 권한
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Sync labels with crazy-max/ghaction-github-labeler
+        uses: crazy-max/ghaction-github-labeler@v5
+        with:
+          # 올바른 파라미터명은 'yaml-file'입니다
+          yaml-file: .github/labels.yml
+          # GitHub API 인증을 위한 토큰
+          github-token: ${{ secrets.GITHUB_TOKEN }}

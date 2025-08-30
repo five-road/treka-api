@@ -1,0 +1,40 @@
+# .github/labels.yml
+- name: '🐞 bug'
+  description: 기능이 정상 동작하지 않음
+  color: 'd73a4a'
+
+- name: '✨ feature'
+  description: 새로운 기능 제안·추가
+  color: '0e8a16'
+
+- name: '♻️ enhancement'
+  description: 기존 기능 개선
+  color: 'a2eeef'
+
+- name: '📝 documentation'
+  description: 문서, 주석, README 수정
+  color: '0075ca'
+
+- name: '✅ test'
+  description: 테스트 코드 추가·수정
+  color: '5319e7'
+
+- name: '🔧 chore'
+  description: 빌드 · 인프라 · 설정 등 잡무
+  color: 'fef2c0'
+
+- name: '🔨 refactor'
+  description: 리팩터링 (동작 변화 없음)
+  color: 'c5def5'
+
+- name: '🚀 performance'
+  description: 성능 개선
+  color: 'fbca04'
+
+- name: '🎨 design'
+  description: UI/UX, 스타일 관련
+  color: 'e99695'
+
+- name: '🤷 wontfix'
+  description: 고치지 않을 / 무시
+  color: 'ffffff'
