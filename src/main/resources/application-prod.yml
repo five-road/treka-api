@@ -28,6 +28,9 @@ api:
   kma:
     base-url: http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst
     service-key: ${WEATHER_API_KEY}
+  kto:
+    service-key: ${TOUR_API_KEY}
+
 
 
 #logging:

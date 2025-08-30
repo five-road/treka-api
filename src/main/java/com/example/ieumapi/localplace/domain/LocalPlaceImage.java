@@ -22,6 +22,9 @@ public class LocalPlaceImage {
     @Column(nullable = false)
     private String imageUrl;
 
+    @Column(nullable = true)
+    private String sumNailUrl;
+
     @Builder
     public LocalPlaceImage(LocalPlace localPlace, String imageUrl) {
         this.localPlace = localPlace;

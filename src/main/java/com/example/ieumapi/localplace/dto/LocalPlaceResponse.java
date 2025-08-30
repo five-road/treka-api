@@ -1,6 +1,7 @@
 package com.example.ieumapi.localplace.dto;
 
 import com.example.ieumapi.localplace.domain.LocalPlace;
+import com.example.ieumapi.localplace.domain.PlaceCategory;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -17,6 +18,7 @@ public class LocalPlaceResponse {
     private Double longitude;
     private Long userId;
     private String userNickname;
+    private PlaceCategory category;
     private List<String> imageUrls;
 
     public static LocalPlaceResponse from(LocalPlace localPlace, List<String> imageUrls, String userNickname) {
@@ -29,6 +31,7 @@ public class LocalPlaceResponse {
                 .longitude(localPlace.getLongitude())
                 .userId(localPlace.getUserId())
                 .userNickname(userNickname)
+                .category(localPlace.getCategory())
                 .imageUrls(imageUrls)
                 .build();
     }
