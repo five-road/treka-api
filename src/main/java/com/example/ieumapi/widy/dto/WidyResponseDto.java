@@ -7,15 +7,17 @@ import lombok.Getter;
 
 @Getter
 public class WidyResponseDto {
-
+    private final Long userId;
     private final Long widyId;
     private final String title;
     private final String content;
     private final String address;
     private final List<UploadImageResDto> images;
 
+
     @Builder
-    public WidyResponseDto(Long widyId, String title, String content, String address, List<UploadImageResDto> images) {
+    public WidyResponseDto(Long userId, Long widyId, String title, String content, String address, List<UploadImageResDto> images) {
+        this.userId = userId;
         this.widyId = widyId;
         this.title = title;
         this.content = content;

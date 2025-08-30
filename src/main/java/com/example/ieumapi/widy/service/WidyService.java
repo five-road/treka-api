@@ -49,9 +49,9 @@ public class WidyService {
         if (requestDto.getScope() == WidyScope.GROUP && requestDto.getGroupId() == null) {
             throw new WidyException(WidyErrorCode.GROUP_ID_REQUIRED);
         }
-
+        Long userId = SecurityUtils.getCurrentUserId();
         // 1. Widy 엔티티 생성 및 저장
-        Widy widy = requestDto.toEntity();
+        Widy widy = requestDto.toEntity(userId);
         Widy savedWidy = widyRepository.save(widy);
         Long widyId = savedWidy.getWidyId();
 
@@ -140,7 +140,7 @@ public class WidyService {
 
         Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "createdAt"));
         List<Widy> widys = widyRepository
-            .findByUserIdAndCreatedAtLessThanOrderByCreatedAtDesc(userId, cursorTime, pageable);
+            .findByUserIdAndScopeAndCreatedAtLessThanOrderByCreatedAtDesc(userId, WidyScope.PRIVATE,cursorTime, pageable);
 
         boolean hasNext = widys.size() > size;
         if (hasNext) {
@@ -314,6 +314,7 @@ public class WidyService {
             .collect(Collectors.toList());
 
         return WidyResponseDto.builder()
+            .userId(widy.getUserId())
             .widyId(widy.getWidyId())
             .title(widy.getTitle())
             .content(widy.getContent())

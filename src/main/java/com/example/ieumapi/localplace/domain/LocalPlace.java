@@ -38,11 +38,18 @@ public class LocalPlace {
     @Column(nullable = false)
     private String userNickName;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Source source; // 데이터 출처 (USER, KTO)
+
+    @Column(unique = true)
+    private String ktoContentId; // 한국관광공사 contentId, nullable
+
     @OneToMany(mappedBy = "localPlace", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LocalPlaceImage> images = new ArrayList<>();
 
     @Builder
-    public LocalPlace(String name, String description, String address, Double latitude, Double longitude, Long userId, String userNickName) {
+    public LocalPlace(String name, String description, String address, Double latitude, Double longitude, Long userId, String userNickName, Source source, String ktoContentId) {
         this.name = name;
         this.description = description;
         this.address = address;
@@ -50,6 +57,8 @@ public class LocalPlace {
         this.longitude = longitude;
         this.userId = userId;
         this.userNickName = userNickName;
+        this.source = source;
+        this.ktoContentId = ktoContentId;
     }
 
     public void update(String name, String description, String address) {

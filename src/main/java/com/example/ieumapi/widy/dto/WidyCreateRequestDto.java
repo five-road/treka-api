@@ -7,15 +7,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
 import java.util.Set;
 import lombok.Getter;
-import jakarta.validation.constraints.NotNull;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 
 @Getter
 public class WidyCreateRequestDto {
-    @Schema(description = "사용자 ID", example = "1")
-    @NotNull
-    private Long userId;
 
     @Schema(description = "위디 제목", example = "오늘의 맛집 탐방")
     @NotBlank
@@ -44,7 +41,7 @@ public class WidyCreateRequestDto {
     @Schema(description = "주소", example = "서울시 강남구")
     private String address;
 
-    public Widy toEntity() {
+    public Widy toEntity(Long userId) {
         return Widy.builder()
             .userId(userId)
             .title(title)

@@ -13,11 +13,17 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/places")
+@RequestMapping("/api/v1/local-places")
 @RequiredArgsConstructor
 public class LocalPlaceController {
 
     private final LocalPlaceService localPlaceService;
+
+    @Operation(summary = "키워드로 장소 검색 (DB + TOUR API)")
+    @GetMapping("/search")
+    public ResponseEntity<List<LocalPlaceResponse>> searchPlaces(@RequestParam("keyword") String keyword) {
+        return ResponseEntity.ok(localPlaceService.searchLocalPlaces(keyword));
+    }
 
     @Operation(summary = "로컬 장소 생성")
     @PostMapping
