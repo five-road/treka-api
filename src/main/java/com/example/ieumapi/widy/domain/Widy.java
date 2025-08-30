@@ -21,12 +21,19 @@ public class Widy extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long widyId;
+
     private Long planId;
+
     private Long groupId;
+
     private String title;
+
     private String content;
+
     private Long userId;
+
     private LocalDate date;
+
     private String address;
 
     @Enumerated(EnumType.STRING)

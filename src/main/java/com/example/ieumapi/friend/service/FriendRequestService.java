@@ -97,7 +97,15 @@ public class FriendRequestService {
                         req.getToUser().getUserId(),
                         req.getStatus().name(),
                         req.getCreatedAt(),
-                        req.getUpdatedAt()
+                        req.getUpdatedAt(),
+                        req.getFromUser().getName(),
+                        req.getFromUser().getNickName(),
+                        req.getFromUser().getImageUrl(),
+                        req.getFromUser().getEmail(),
+                        req.getToUser().getName(),
+                        req.getToUser().getNickName(),
+                        req.getToUser().getImageUrl(),
+                        req.getToUser().getEmail()
                 ))
                 .collect(Collectors.toList());
 
@@ -135,7 +143,15 @@ public class FriendRequestService {
                         req.getToUser().getUserId(),
                         req.getStatus().name(),
                         req.getCreatedAt(),
-                        req.getUpdatedAt()
+                        req.getUpdatedAt(),
+                        req.getFromUser().getName(),
+                        req.getFromUser().getNickName(),
+                        req.getFromUser().getImageUrl(),
+                        req.getFromUser().getEmail(),
+                        req.getToUser().getName(),
+                        req.getToUser().getNickName(),
+                        req.getToUser().getImageUrl(),
+                        req.getToUser().getEmail()
                 ))
                 .collect(Collectors.toList());
 
