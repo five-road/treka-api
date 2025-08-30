@@ -1,17 +1,24 @@
 package com.example.ieumapi.widy.controller;
 
 import com.example.ieumapi.global.response.CursorPageResponse;
+import com.example.ieumapi.widy.dto.RecentWidyResponseDto;
+import com.example.ieumapi.widy.dto.WidyCountResponseDto;
 import com.example.ieumapi.widy.dto.WidyCreateRequestDto;
 import com.example.ieumapi.widy.dto.WidyResponseDto;
 import com.example.ieumapi.widy.dto.WidyUpdateRequestDto;
 import com.example.ieumapi.widy.service.WidyService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,10 +39,12 @@ import org.springframework.web.multipart.MultipartFile;
 public class WidyController {
     private final WidyService widyService;
 
-    @Operation(summary = "Widy 생성", description = "새로운 Widy를 생성합니다.")
-    @PostMapping()
-    public ResponseEntity<WidyResponseDto> create(@RequestPart("widy") @Valid WidyCreateRequestDto request
-    , @RequestPart(value = "images", required = false) List<MultipartFile> images) {
+    @Operation(summary = "위디 생성", description = "새로운 위디를 생성합니다. (이미지 포함)")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<WidyResponseDto> create(
+        @Parameter(description = "위디 생성 정보 (JSON 형식)") @RequestPart("widy") @Valid WidyCreateRequestDto request,
+        @Parameter(description = "업로드할 이미지 파일 목록") @RequestPart(value = "images", required = false) List<MultipartFile> images
+    ) {
         WidyResponseDto widyResponseDto = widyService.createWidy(request, images);
         return ResponseEntity.ok(widyResponseDto);
     }
@@ -86,5 +95,18 @@ public class WidyController {
         @RequestParam(required = false) String cursor
     ) {
         return ResponseEntity.ok(widyService.getGroupFeedCursor(size, cursor));
+    }
+
+    @Operation(summary = "나와 관련된 위디 총 개수 조회")
+    @GetMapping("/count")
+    public ResponseEntity<WidyCountResponseDto> getVisibleWidyCount() {
+        return ResponseEntity.ok(widyService.getVisibleWidyCount());
+    }
+
+    @Operation(summary = "나와 관련된 최근 위디 조회", description = "최근 한 달 동안 나와 관련된 위디를 최대 7개까지 조회합니다.")
+    @ApiResponse(responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = RecentWidyResponseDto.class)))
+    @GetMapping("/recent")
+    public ResponseEntity<List<RecentWidyResponseDto>> getRecentVisibleWidys() {
+        return ResponseEntity.ok(widyService.getRecentVisibleWidys());
     }
 }

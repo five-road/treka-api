@@ -27,4 +27,29 @@ public class FriendRequestDto {
 
     @Schema(description = "상태 변경 시각", example = "2025-07-10T14:05:30")
     private final LocalDateTime updatedAt;
+
+    @Schema(description = "요청 보낸 사용자 이름", example = "이하나")
+    private final String fromUserName;
+
+    @Schema(description = "요청 보낸 사용자 닉네임", example = "hana_lee")
+    private final String fromUserNickname;
+
+    @Schema(description = "요청 보낸 사용자 프로필 이미지 URL")
+    private final String fromUserProfileImage;
+
+    @Schema(description = "요청 보낸 사용자 이메일", example = "hana@example.com")
+    private final String fromUserEmail;
+
+    @Schema(description = "요청 받은 사용자 이름", example = "김철수")
+    private final String toUserName;
+
+    @Schema(description = "요청 받은 사용자 닉네임", example = "chulsoo")
+    private final String toUserNickname;
+
+    @Schema(description = "요청 받은 사용자 프로필 이미지 URL")
+    private final String toUserProfileImage;
+
+    @Schema(description = "요청 받은 사용자 이메일", example = "chulsoo@example.com")
+    private final String toUserEmail;
+
 }
