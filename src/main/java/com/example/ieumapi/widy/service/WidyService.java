@@ -9,6 +9,7 @@ import com.example.ieumapi.group.repository.GroupRepository;
 import com.example.ieumapi.group.service.GroupService;
 import com.example.ieumapi.plan.domain.Plan;
 import com.example.ieumapi.plan.repository.PlanRepository;
+import com.example.ieumapi.user.domain.User;
 import com.example.ieumapi.widy.domain.Widy;
 import com.example.ieumapi.widy.domain.WidyImage;
 import com.example.ieumapi.widy.domain.WidyScope;
@@ -95,8 +96,8 @@ public class WidyService {
         Widy widy = widyRepository.findById(id)
             .orElseThrow(() -> new WidyException(WidyErrorCode.WIDY_NOT_FOUND));
 
-        Long userId = SecurityUtils.getCurrentUserId();
-        if (!widy.getUserId().equals(userId)) {
+        User user = SecurityUtils.getCurrentUser();
+        if (!widy.getUserId().equals(user.getUserId())) {
             throw new WidyException(WidyErrorCode.FORBIDDEN);
         }
 
@@ -107,7 +108,7 @@ public class WidyService {
 
         widy.update(dto.getTitle(), dto.getContent(), dto.getAddress());
         // DB에서 이미지를 다시 조회하는 헬퍼 메소드 호출
-        return mapToWidyResponseDto(widy);
+        return mapToWidyResponseDto(widy, user.getEmail() );
     }
 
     public void delete(Long id) {
@@ -118,7 +119,6 @@ public class WidyService {
         if (!widy.getUserId().equals(userId)) {
             throw new WidyException(WidyErrorCode.FORBIDDEN);
         }
-
         widyRepository.deleteById(id);
     }
 
@@ -127,17 +127,18 @@ public class WidyService {
         Widy widy = widyRepository.findById(widyId)
             .orElseThrow(() -> new WidyException(WidyErrorCode.WIDY_NOT_FOUND));
 
-        Long userId = SecurityUtils.getCurrentUserId();
+        User currentUser = SecurityUtils.getCurrentUser();
 
         // Access control based on scope
-        if (widy.getScope() == WidyScope.PRIVATE && !widy.getUserId().equals(userId)) {
+        if (widy.getScope() == WidyScope.PRIVATE && !widy.getUserId().equals(currentUser.getUserId())) {
             throw new WidyException(WidyErrorCode.FORBIDDEN);
         }
-        if (widy.getScope() == WidyScope.GROUP && !groupService.getMyGroups().contains(widy.getGroupId())) { // Assuming getGroupIdForUser is a method that retrieves the group ID for a user
+        if (widy.getScope() == WidyScope.GROUP && !groupService.getMyGroups().contains(
+            widy.getGroupId())) { // Assuming getGroupIdForUser is a method that retrieves the group ID for a user
             throw new WidyException(WidyErrorCode.FORBIDDEN);
         }
 
-        return mapToWidyResponseDto(widy);
+        return mapToWidyResponseDto(widy, currentUser.getEmail());
     }
 
     @Transactional(readOnly = true)
@@ -151,7 +152,8 @@ public class WidyService {
 
         Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "createdAt"));
         List<Widy> widys = widyRepository
-            .findByUserIdAndScopeAndCreatedAtLessThanOrderByCreatedAtDesc(userId, WidyScope.PRIVATE,cursorTime, pageable);
+            .findByUserIdAndScopeAndCreatedAtLessThanOrderByCreatedAtDesc(userId, WidyScope.PRIVATE,
+                cursorTime, pageable);
 
         return getWidyResponseDtoCursorPageResponse(size, widys);
     }
@@ -174,8 +176,9 @@ public class WidyService {
 
         List<WidyResponseDto> data = widys.stream()
             .map(widy -> {
-                List<WidyImage> widyImages = imagesByWidyId.getOrDefault(widy.getWidyId(), Collections.emptyList());
-                return mapToWidyResponseDto(widy, widyImages);
+                List<WidyImage> widyImages = imagesByWidyId.getOrDefault(widy.getWidyId(),
+                    Collections.emptyList());
+                return mapToWidyResponseDto(widy, widyImages, SecurityUtils.getCurrentUser().getEmail());
             })
             .collect(Collectors.toList());
 
@@ -200,7 +203,8 @@ public class WidyService {
 
         Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "createdAt"));
         List<Widy> widys = widyRepository
-            .findByScopeAndCreatedAtLessThanOrderByCreatedAtDesc(WidyScope.PUBLIC, cursorTime, pageable);
+            .findByScopeAndCreatedAtLessThanOrderByCreatedAtDesc(WidyScope.PUBLIC, cursorTime,
+                pageable);
 
         return getWidyResponseDtoCursorPageResponse(size, widys);
     }
@@ -224,7 +228,8 @@ public class WidyService {
 
         Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.DESC, "createdAt"));
         List<Widy> widys = widyRepository
-            .findByGroupIdInAndCreatedAtLessThanOrderByCreatedAtDesc(groupIds, cursorTime, pageable);
+            .findByScopeAndGroupIdInAndCreatedAtLessThanOrderByCreatedAtDesc(WidyScope.GROUP,
+                groupIds, cursorTime, pageable);
 
         return getWidyResponseDtoCursorPageResponse(size, widys);
     }
@@ -232,7 +237,8 @@ public class WidyService {
     @Transactional(readOnly = true)
     public WidyCountResponseDto getVisibleWidyCount() {
         Long userId = SecurityUtils.getCurrentUserId();
-        List<Long> groupIds = Optional.ofNullable(groupService.getMyGroups()).orElse(Collections.emptyList());
+        List<Long> groupIds = Optional.ofNullable(groupService.getMyGroups())
+            .orElse(Collections.emptyList());
         long count = widyRepository.countVisibleWidysForUser(userId, groupIds);
         return new WidyCountResponseDto(count);
     }
@@ -240,12 +246,14 @@ public class WidyService {
     @Transactional(readOnly = true)
     public List<RecentWidyResponseDto> getRecentVisibleWidys() {
         Long userId = SecurityUtils.getCurrentUserId();
-        List<Long> groupIds = Optional.ofNullable(groupService.getMyGroups()).orElse(Collections.emptyList());
+        List<Long> groupIds = Optional.ofNullable(groupService.getMyGroups())
+            .orElse(Collections.emptyList());
 
         LocalDateTime startDateTime = LocalDate.now().minusMonths(1).atStartOfDay();
         Pageable pageable = PageRequest.of(0, 7);
 
-        List<Widy> widys = widyRepository.findVisibleWidysForUser(userId, groupIds, startDateTime, pageable);
+        List<Widy> widys = widyRepository.findVisibleWidysForUser(userId, groupIds, startDateTime,
+            pageable);
 
         if (widys.isEmpty()) {
             return Collections.emptyList();
@@ -297,7 +305,9 @@ public class WidyService {
      * Base64로 인코딩된 커서 문자열을 디코딩하여 long 타입의 시간(ms)으로 변환합니다.
      */
     private long decodeCursor(String cursor) {
-        if (cursor == null || cursor.isBlank()) return 0L;
+        if (cursor == null || cursor.isBlank()) {
+            return 0L;
+        }
         try {
             String decoded = new String(Base64.getDecoder().decode(cursor), StandardCharsets.UTF_8);
             return Long.parseLong(decoded);
@@ -307,19 +317,17 @@ public class WidyService {
     }
 
     /**
-     * Widy 엔티티를 받아 이미지를 조회한 후 DTO로 변환하는 헬퍼 메소드.
-     * 단일 Widy를 조회하는 경우에 사용됩니다.
+     * Widy 엔티티를 받아 이미지를 조회한 후 DTO로 변환하는 헬퍼 메소드. 단일 Widy를 조회하는 경우에 사용됩니다.
      */
-    private WidyResponseDto mapToWidyResponseDto(Widy widy) {
+    private WidyResponseDto mapToWidyResponseDto(Widy widy, String email) {
         List<WidyImage> images = widyImageRepository.findByWidyId(widy.getWidyId());
-        return mapToWidyResponseDto(widy, images);
+        return mapToWidyResponseDto(widy, images, email);
     }
 
     /**
-     * Widy 엔티티와 이미지 목록을 받아 DTO로 변환하는 헬퍼 메소드.
-     * DB 조회를 하지 않으므로 N+1 문제 해결에 사용됩니다.
+     * Widy 엔티티와 이미지 목록을 받아 DTO로 변환하는 헬퍼 메소드. DB 조회를 하지 않으므로 N+1 문제 해결에 사용됩니다.
      */
-    private WidyResponseDto mapToWidyResponseDto(Widy widy, List<WidyImage> images) {
+    private WidyResponseDto mapToWidyResponseDto(Widy widy, List<WidyImage> images, String email) {
         List<UploadImageResDto> imageDtos = images.stream()
             .map(image -> UploadImageResDto.builder()
                 .id(image.getId())
@@ -330,7 +338,7 @@ public class WidyService {
             .collect(Collectors.toList());
 
         return WidyResponseDto.builder()
-            .userId(widy.getUserId())
+            .email(email)
             .widyId(widy.getWidyId())
             .title(widy.getTitle())
             .content(widy.getContent())
