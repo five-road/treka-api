@@ -7,8 +7,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,7 +22,7 @@ public interface WidyRepository extends JpaRepository<Widy, Long> {
     );
 
     List<Widy> findByUserIdAndScopeAndCreatedAtLessThanOrderByCreatedAtDesc(Long userId, WidyScope scope,LocalDateTime createdAt, Pageable pageable);
-    List<Widy> findByUserIdAndCreatedAtLessThanOrderByCreatedAtDesc(Long userId, LocalDateTime createdAt, Pageable pageable);
+
 
     @Query("SELECT COUNT(DISTINCT w.widyId) FROM Widy w WHERE w.userId = :userId OR w.groupId IN :groupIds")
     long countVisibleWidysForUser(@Param("userId") Long userId, @Param("groupIds") List<Long> groupIds);
