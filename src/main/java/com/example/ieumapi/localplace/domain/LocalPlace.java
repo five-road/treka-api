@@ -53,8 +53,6 @@ public class LocalPlace {
     @Column(nullable = false)
     private PlaceCategory category;
 
-    @OneToMany(mappedBy = "localPlace", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<LocalPlaceImage> images = new ArrayList<>();
 
     @Builder
     public LocalPlace(String name,

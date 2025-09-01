@@ -69,18 +69,7 @@ public class LocalPlaceService {
 
         localPlaceRepository.save(localPlace);
 
-        List<String> imageUrls = new ArrayList<>();
-        if (images != null && !images.isEmpty()) {
-            List<UploadImageResDto> uploadImageResDtos = fileStorageClient.uploadMultipleImages(
-                images);
-
-            uploadImageResDtos.forEach(uploadImageResDto -> {
-                LocalPlaceImage image = LocalPlaceImage.builder().localPlace(localPlace)
-                    .imageUrl(uploadImageResDto.getUrl()).build();
-                imageUrls.add(uploadImageResDto.getUrl());
-                localPlaceImageRepository.save(image);
-            });
-        }
+        List<String> imageUrls = uploadAndSaveImages(localPlace, images);
 
         return LocalPlaceResponse.from(localPlace, imageUrls, user.getNickName());
     }
@@ -104,6 +93,7 @@ public class LocalPlaceService {
     private List<LocalPlace> getPlacesFromKto(String keyword) {
         String responseJson = ktoFeignClient.searchByKeyword(ktoServiceKey, keyword, "json", "ETC",
             "treka", "39");
+
         try {
             JsonNode root = objectMapper.readTree(responseJson);
             JsonNode items = root.path("response").path("body").path("items").path("item");
@@ -127,9 +117,29 @@ public class LocalPlaceService {
 
         return localPlaceRepository.findByKtoContentId(ktoContentId)
             .orElseGet(() -> {
+                String reponseDetailJson = ktoFeignClient.getLocalPlaceDetail(
+                    ktoServiceKey,
+                    "json",
+                    "ETC",
+                    "treka",
+                    ktoContentId
+                );
+
+                String overview = "";
+                try {
+                    JsonNode root = objectMapper.readTree(reponseDetailJson);
+                    JsonNode items = root.path("response").path("body").path("items").path("item");
+
+                    if (items.isArray() && items.size() > 0) {
+                        overview = items.get(0).path("overview").asText("");
+                    }
+
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
                 LocalPlace newPlace = LocalPlace.builder()
                     .name(node.path("title").asText())
-                    .description("") // KTO API는 상세 설명이 별도 API 호출 필요
+                    .description(overview)
                     .address(node.path("addr1").asText() + node.path("addr2").asText())
                     .latitude(node.path("mapy").asDouble())
                     .longitude(node.path("mapx").asDouble())
@@ -140,7 +150,19 @@ public class LocalPlaceService {
                     .ktoContentId(ktoContentId)
                     .category(PlaceCategory.fromCode(contentTypeId))
                     .build();
-                return localPlaceRepository.save(newPlace);
+
+                localPlaceRepository.save(newPlace);
+
+                String imageUrl = node.path("firstimage").asText();
+                if (imageUrl != null && !imageUrl.isEmpty()) {
+                    LocalPlaceImage image = LocalPlaceImage.builder()
+                        .localPlace(newPlace)
+                        .imageUrl(imageUrl)
+                        .build();
+                    localPlaceImageRepository.save(image);
+                }
+
+                return newPlace;
             });
     }
 
@@ -149,12 +171,15 @@ public class LocalPlaceService {
     public LocalPlaceResponse getPlace(Long placeId) {
         LocalPlace localPlace = localPlaceRepository.findById(placeId)
             .orElseThrow(() -> new LocalPlaceException(LocalPlaceErrorCode.LOCAL_PLACE_NOT_FOUND));
-        List<String> imageUrls = localPlace.getImages().stream().map(LocalPlaceImage::getImageUrl)
-            .collect(Collectors.toList());
+        List<String> imageUrls = localPlaceImageRepository.findByLocalPlace_PlaceId(placeId)
+            .stream()
+            .map(LocalPlaceImage::getImageUrl)
+            .toList();
         return LocalPlaceResponse.from(localPlace, imageUrls, localPlace.getUserNickName());
     }
 
-    public LocalPlaceResponse updatePlace(Long placeId, LocalPlaceUpdateRequest request, List<MultipartFile> images) {
+    public LocalPlaceResponse updatePlace(Long placeId, LocalPlaceUpdateRequest request,
+        List<MultipartFile> images) {
         if (images != null && images.size() > 3) {
             throw new IllegalArgumentException("이미지는 최대 3개까지 업로드할 수 있습니다.");
         }
@@ -163,32 +188,23 @@ public class LocalPlaceService {
             .orElseThrow(() -> new LocalPlaceException(LocalPlaceErrorCode.LOCAL_PLACE_NOT_FOUND));
         validateAuthor(localPlace);
 
-        localPlace.update(request.getName(), request.getDescription(), request.getAddress(), request.getCategory());
+        localPlace.update(request.getName(), request.getDescription(), request.getAddress(),
+            request.getCategory());
 
         List<String> imageUrls;
 
         if (images != null && !images.isEmpty()) {
-            imageUrls = new ArrayList<>();
-            List<LocalPlaceImage> existingImages = localPlace.getImages();
+            List<LocalPlaceImage> existingImages = localPlaceImageRepository.findByLocalPlace_PlaceId(
+                placeId);
             if (existingImages != null && !existingImages.isEmpty()) {
                 existingImages.forEach(image -> fileStorageClient.deleteImage(image.getImageUrl()));
                 localPlaceImageRepository.deleteAll(existingImages);
-                localPlace.getImages().clear();
             }
-
-            List<UploadImageResDto> uploadImageResDtos = fileStorageClient.uploadMultipleImages(images);
-            uploadImageResDtos.forEach(uploadImageResDto -> {
-                LocalPlaceImage image = LocalPlaceImage.builder()
-                    .localPlace(localPlace)
-                    .imageUrl(uploadImageResDto.getUrl())
-                    .build();
-                localPlaceImageRepository.save(image);
-                imageUrls.add(uploadImageResDto.getUrl());
-            });
+            imageUrls = uploadAndSaveImages(localPlace, images);
         } else {
-            imageUrls = localPlace.getImages().stream()
+            imageUrls = localPlaceImageRepository.findByLocalPlace_PlaceId(placeId).stream()
                 .map(LocalPlaceImage::getImageUrl)
-                .collect(Collectors.toList());
+                .toList();
         }
 
         return LocalPlaceResponse.from(localPlace, imageUrls, localPlace.getUserNickName());
@@ -199,7 +215,10 @@ public class LocalPlaceService {
             .orElseThrow(() -> new LocalPlaceException(LocalPlaceErrorCode.LOCAL_PLACE_NOT_FOUND));
         validateAuthor(localPlace);
 
-        localPlace.getImages().forEach(image -> fileStorageClient.deleteImage(image.getImageUrl()));
+        List<LocalPlaceImage> images = localPlaceImageRepository.findByLocalPlace_PlaceId(placeId);
+        images.forEach(image -> fileStorageClient.deleteImage(image.getImageUrl()));
+        localPlaceImageRepository.deleteAll(images);
+
         localPlaceRepository.delete(localPlace);
     }
 
@@ -240,7 +259,7 @@ public class LocalPlaceService {
         }
 
         List<Long> placeIds = places.stream().map(LocalPlace::getPlaceId)
-            .collect(Collectors.toList());
+            .toList();
         List<LocalPlaceImage> images = localPlaceImageRepository.findByLocalPlace_PlaceIdIn(
             placeIds);
 
@@ -254,7 +273,7 @@ public class LocalPlaceService {
                 imageUrlsMap.getOrDefault(place.getPlaceId(), Collections.emptyList()),
                 place.getUserNickName())
             )
-            .collect(Collectors.toList());
+            .toList();
     }
 
     private void validateAuthor(LocalPlace localPlace) {
@@ -262,5 +281,21 @@ public class LocalPlaceService {
         if (!localPlace.getUserId().equals(currentUserId)) {
             throw new LocalPlaceException(LocalPlaceErrorCode.FORBIDDEN);
         }
+    }
+
+    private List<String> uploadAndSaveImages(LocalPlace localPlace, List<MultipartFile> images) {
+        if (images == null || images.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<UploadImageResDto> uploadImageResDtos = fileStorageClient.uploadMultipleImages(images);
+        List<LocalPlaceImage> newImages = uploadImageResDtos.stream()
+            .map(uploadImageResDto -> LocalPlaceImage.builder()
+                .localPlace(localPlace)
+                .imageUrl(uploadImageResDto.getUrl())
+                .build())
+            .toList();
+        localPlaceImageRepository.saveAll(newImages);
+        return newImages.stream().map(LocalPlaceImage::getImageUrl).toList();
     }
 }

@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface LocalPlaceImageRepository extends JpaRepository<LocalPlaceImage, Long> {
     List<LocalPlaceImage> findByLocalPlace_PlaceIdIn(List<Long> placeIds);
+    List<LocalPlaceImage> findByLocalPlace_PlaceId(Long placeId);
 }

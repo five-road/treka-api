@@ -115,7 +115,9 @@ public class GroupService {
                     Group g = m.getGroup();
                     long memberCount = groupMemberRepository.countByGroupGroupId(g.getGroupId()); // NEW
                     String inviteCode = groupInviteRepository
-                            .findActiveLinkInvite(g) // NEW
+                            .findActiveLinkInvites(g) // NEW
+                            .stream()
+                            .findFirst()
                             .map(GroupInvite::getInviteCode)
                             .orElse(null);
                     return new GroupDto(

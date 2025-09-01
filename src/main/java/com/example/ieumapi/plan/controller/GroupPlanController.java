@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Plan (Group)", description = "그룹의 플랜 목록 API")
 @RestController
-@RequestMapping("/api/v1/groups/{groupId}/plans")
+@RequestMapping("/api/v1/groups/plans")
 @Validated
 @RequiredArgsConstructor
 public class GroupPlanController {
@@ -25,7 +25,6 @@ public class GroupPlanController {
     @GetMapping
     @SuccessMessage("그룹 플랜 목록을 불러왔습니다.")
     public CursorPageResponse<PlanDto> listGroupPlans(
-            @PathVariable Long groupId,
             @RequestParam(defaultValue = "20")
             @Min(value = 1, message = "size는 1 이상이어야 합니다.")
             @Max(value = 100, message = "size는 100 이하이어야 합니다.")
@@ -33,6 +32,6 @@ public class GroupPlanController {
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false, name = "q") String query
     ) {
-        return planService.listGroupPlans(groupId, size, cursor, query);
+        return planService.listMyGroupPlans(size, cursor, query);
     }
 }
