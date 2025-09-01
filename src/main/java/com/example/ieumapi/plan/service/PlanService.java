@@ -5,6 +5,7 @@ import com.example.ieumapi.global.util.SecurityUtils;
 import com.example.ieumapi.group.domain.Group;
 import com.example.ieumapi.group.repository.GroupMemberRepository;
 import com.example.ieumapi.group.repository.GroupRepository;
+import com.example.ieumapi.group.service.GroupService;
 import com.example.ieumapi.plan.domain.Plan;
 import com.example.ieumapi.plan.dto.plan.CreatePlanRequest;
 import com.example.ieumapi.plan.dto.plan.PlanDto;
@@ -26,6 +27,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,6 +40,7 @@ public class PlanService {
     private final UserRepository userRepository;
     private final GroupRepository groupRepository;
     private final GroupMemberRepository groupMemberRepository;
+    private final GroupService groupService;
 
     // ----------------- Create -----------------
     public PlanDto create(CreatePlanRequest req) {
@@ -112,15 +115,17 @@ public class PlanService {
         return new CursorPageResponse<>(data, nextCursor, hasNext);
     }
 
-    // ----------------- List: 특정 그룹의 플랜 -----------------
+    // ----------------- List: 내가 속한 모든 그룹의 플랜 -----------------
     @Transactional(readOnly = true)
-    public CursorPageResponse<PlanDto> listGroupPlans(Long groupId, int size, String cursor, String q) {
+    public CursorPageResponse<PlanDto> listMyGroupPlans(int size, String cursor, String q) {
         Long currentUserId = SecurityUtils.getCurrentUserId();
-        Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new PlanException(PlanError.GROUP_NOT_FOUND));
+        List<Long> myGroupIds = groupService.getMyGroups();
 
-        boolean isMember = groupMemberRepository.existsByGroupGroupIdAndUserId(groupId, currentUserId);
-        if (!isMember) throw new PlanException(PlanError.FORBIDDEN);
+        if (myGroupIds.isEmpty()) {
+            return new CursorPageResponse<>(Collections.emptyList(), null, false);
+        }
+
+        List<Group> myGroups = groupRepository.findAllById(myGroupIds);
 
         long cursorMillis = decodeCursor(cursor);
         long clampMillis = Math.min(cursorMillis, System.currentTimeMillis());
@@ -131,8 +136,8 @@ public class PlanService {
 
         Pageable pageable = PageRequest.of(0, size + 1);
         List<Plan> list = (q == null || q.isBlank())
-                ? planRepository.findByGroupAndCreatedAtLessThanOrderByCreatedAtDescPlanIdDesc(group, cursorTime, pageable)
-                : planRepository.findByGroupAndTitleContainingIgnoreCaseAndCreatedAtLessThanOrderByCreatedAtDescPlanIdDesc(group, q.trim(), cursorTime, pageable);
+                ? planRepository.findByGroupInAndCreatedAtLessThanOrderByCreatedAtDescPlanIdDesc(myGroups, cursorTime, pageable)
+                : planRepository.findByGroupInAndTitleContainingIgnoreCaseAndCreatedAtLessThanOrderByCreatedAtDescPlanIdDesc(myGroups, q.trim(), cursorTime, pageable);
 
         boolean hasNext = list.size() > size;
         if (hasNext) list = list.subList(0, size);

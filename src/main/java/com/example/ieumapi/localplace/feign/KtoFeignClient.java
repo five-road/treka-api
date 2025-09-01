@@ -27,4 +27,13 @@ public interface KtoFeignClient {
             @RequestParam("MobileOS") String mobileOS,
             @RequestParam("MobileApp") String mobileApp
     );
+
+    @GetMapping("/detailCommon2")
+    String getLocalPlaceDetail(
+        @RequestParam("serviceKey") String serviceKey,
+        @RequestParam("_type") String type,
+        @RequestParam("MobileOS") String mobileOS,
+        @RequestParam("MobileApp") String mobileApp,
+        @RequestParam("contentId") String contentId
+    );
 }

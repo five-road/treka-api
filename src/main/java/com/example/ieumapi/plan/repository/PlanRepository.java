@@ -28,4 +28,13 @@ public interface PlanRepository extends JpaRepository<Plan, Long> {
     List<Plan> findByGroupAndTitleContainingIgnoreCaseAndCreatedAtLessThanOrderByCreatedAtDescPlanIdDesc(
             Group group, String title, LocalDateTime cursorTime, Pageable pageable
     );
+
+    // 여러 그룹의 플랜
+    List<Plan> findByGroupInAndCreatedAtLessThanOrderByCreatedAtDescPlanIdDesc(
+            List<Group> groups, LocalDateTime createdAt, Pageable pageable
+    );
+
+    List<Plan> findByGroupInAndTitleContainingIgnoreCaseAndCreatedAtLessThanOrderByCreatedAtDescPlanIdDesc(
+            List<Group> groups, String title, LocalDateTime createdAt, Pageable pageable
+    );
 }

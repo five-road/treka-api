@@ -28,5 +28,5 @@ public interface GroupInviteRepository extends JpaRepository<GroupInvite, Long> 
           AND (gi.expiresAt IS NULL OR gi.expiresAt > CURRENT_TIMESTAMP)
         ORDER BY gi.createdAt DESC
         """)
-    Optional<GroupInvite> findActiveLinkInvite(@Param("group") Group group);
+    List<GroupInvite> findActiveLinkInvites(@Param("group") Group group);
 }
