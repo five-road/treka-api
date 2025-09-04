@@ -3,6 +3,7 @@ package com.example.ieumapi.user.service;
 import com.example.ieumapi.global.response.CursorPageResponse;
 import com.example.ieumapi.global.util.SecurityUtils;
 import com.example.ieumapi.user.domain.User;
+import com.example.ieumapi.user.dto.UserInfoResponse;
 import com.example.ieumapi.user.dto.UserSearchResultDto;
 import com.example.ieumapi.user.dto.UserSignupRequest;
 import com.example.ieumapi.user.dto.UserLoginRequest;
@@ -94,6 +95,20 @@ public class UserService {
         }
 
         return new CursorPageResponse<>(data, nextCursor, hasNext);
+    }
+
+    @Transactional(readOnly = true)
+    public UserInfoResponse getMyInfo() {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        User user = userRepository.findByUserId(currentUserId)
+                .orElseThrow(() -> new UserException(USER_NOT_FOUND));
+
+        return UserInfoResponse.builder()
+                .userId(user.getUserId())
+                .nickname(user.getNickName())
+                .name(user.getName())
+                .email(user.getEmail())
+                .build();
     }
 
     @Transactional

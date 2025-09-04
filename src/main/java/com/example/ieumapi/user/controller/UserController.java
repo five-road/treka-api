@@ -35,6 +35,13 @@ public class UserController {
         return CommonResponse.success(response);
     }
 
+    @Operation(summary = "내 정보 조회")
+    @GetMapping("/me")
+    public CommonResponse<UserInfoResponse> getMyInfo() {
+        UserInfoResponse myInfo = userService.getMyInfo();
+        return CommonResponse.success(myInfo);
+    }
+
     @Operation(summary = "사용자 검색")
     @GetMapping("/search")
     public CommonResponse<?> searchUsers(
@@ -44,6 +51,8 @@ public class UserController {
     ) {
         return CommonResponse.success(userService.searchUsersCursor(query, size, cursor));
     }
+
+
 
     @Operation(summary = "회원 탈퇴")
     @DeleteMapping("/me")
