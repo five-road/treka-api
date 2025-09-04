@@ -2,6 +2,7 @@ package com.example.ieumapi.localplace.controller;
 
 import com.example.ieumapi.localplace.dto.LocalPlaceCreateRequest;
 import com.example.ieumapi.localplace.dto.LocalPlaceResponse;
+import com.example.ieumapi.localplace.dto.LocalPlaceSearchResponse;
 import com.example.ieumapi.localplace.dto.LocalPlaceUpdateRequest;
 import com.example.ieumapi.localplace.service.LocalPlaceService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,7 +23,7 @@ public class LocalPlaceController {
 
     @Operation(summary = "키워드로 장소 검색 (DB + TOUR API)")
     @GetMapping("/search")
-    public ResponseEntity<List<LocalPlaceResponse>> searchPlaces(@RequestParam("keyword") String keyword) {
+    public ResponseEntity<List<LocalPlaceSearchResponse>> searchPlaces(@RequestParam("keyword") String keyword) {
         return ResponseEntity.ok(localPlaceService.searchLocalPlaces(keyword));
     }
 
@@ -56,7 +57,7 @@ public class LocalPlaceController {
 
     @Operation(summary = "좌표 기반 근처 장소 조회")
     @GetMapping("/nearby")
-    public ResponseEntity<List<LocalPlaceResponse>> findNearbyPlaces(@RequestParam("lat") double latitude, @RequestParam("lng") double longitude) {
+    public ResponseEntity<List<LocalPlaceSearchResponse>> findNearbyPlaces(@RequestParam("lat") double latitude, @RequestParam("lng") double longitude) {
         return ResponseEntity.ok(localPlaceService.findNearbyPlaces(latitude, longitude));
     }
 }

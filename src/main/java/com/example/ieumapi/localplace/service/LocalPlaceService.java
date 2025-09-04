@@ -9,6 +9,7 @@ import com.example.ieumapi.localplace.domain.PlaceCategory;
 import com.example.ieumapi.localplace.domain.Source;
 import com.example.ieumapi.localplace.dto.LocalPlaceCreateRequest;
 import com.example.ieumapi.localplace.dto.LocalPlaceResponse;
+import com.example.ieumapi.localplace.dto.LocalPlaceSearchResponse;
 import com.example.ieumapi.localplace.dto.LocalPlaceUpdateRequest;
 import com.example.ieumapi.localplace.exception.LocalPlaceErrorCode;
 import com.example.ieumapi.localplace.exception.LocalPlaceException;
@@ -74,23 +75,47 @@ public class LocalPlaceService {
         return LocalPlaceResponse.from(localPlace, imageUrls, user.getNickName());
     }
 
-    public List<LocalPlaceResponse> searchLocalPlaces(String keyword) {
+    public List<LocalPlaceSearchResponse> searchLocalPlaces(String keyword) {
         // 1. KTO API 호출 및 데이터 처리
-        List<LocalPlace> ktoPlaces = getPlacesFromKto(keyword);
+        List<LocalPlaceSearchResponse> ktoPlaces = getPlacesFromKto(keyword);
 
         // 2. 사용자 등록 장소 검색
         List<LocalPlace> userPlaces = localPlaceRepository.findByNameContainingIgnoreCaseAndSource(
             keyword, Source.USER);
 
-        // 3. 결과 병합 및 중복 제거
-        Set<LocalPlace> combinedPlaces = new HashSet<>(ktoPlaces);
-        combinedPlaces.addAll(userPlaces);
+        List<LocalPlaceSearchResponse> userPlaceResponses = userPlaces.stream()
+            .map(place -> {
+                List<LocalPlaceImage> images = localPlaceImageRepository.findByLocalPlace_PlaceId(
+                    place.getPlaceId());
+                String imageUrl = images.isEmpty() ? null : images.get(0).getImageUrl();
+                String sumNailUrl = images.isEmpty() ? null : images.get(0).getSumNailUrl();
+                return new LocalPlaceSearchResponse(
+                    place.getPlaceId(),
+                    place.getName(),
+                    place.getDescription(),
+                    place.getAddress(),
+                    place.getLatitude(),
+                    place.getLongitude(),
+                    place.getUserId(),
+                    place.getUserNickName(),
+                    place.getSource(),
+                    place.getKtoContentId(),
+                    place.getContentTypeId(),
+                    place.getCategory(),
+                    imageUrl,
+                    sumNailUrl
+                );
+            })
+            .toList();
 
-        // 4. DTO로 변환하여 반환
-        return getPlaceDetails(new ArrayList<>(combinedPlaces));
+        // 3. 결과 병합 및 중복 제거
+        Set<LocalPlaceSearchResponse> combinedPlaces = new HashSet<>(ktoPlaces);
+        combinedPlaces.addAll(userPlaceResponses);
+
+        return new ArrayList<>(combinedPlaces);
     }
 
-    private List<LocalPlace> getPlacesFromKto(String keyword) {
+    private List<LocalPlaceSearchResponse> getPlacesFromKto(String keyword) {
         String responseJson = ktoFeignClient.searchByKeyword(ktoServiceKey, keyword, "json", "ETC",
             "treka", "39");
 
@@ -111,11 +136,11 @@ public class LocalPlaceService {
         }
     }
 
-    private LocalPlace createOrUpdatePlaceFromKtoNode(JsonNode node) {
+    private LocalPlaceSearchResponse createOrUpdatePlaceFromKtoNode(JsonNode node) {
         String ktoContentId = node.path("contentid").asText();
         long contentTypeId = node.path("contenttypeid").asLong();
 
-        return localPlaceRepository.findByKtoContentId(ktoContentId)
+        LocalPlace localPlace = localPlaceRepository.findByKtoContentId(ktoContentId)
             .orElseGet(() -> {
                 String reponseDetailJson = ktoFeignClient.getLocalPlaceDetail(
                     ktoServiceKey,
@@ -154,16 +179,39 @@ public class LocalPlaceService {
                 localPlaceRepository.save(newPlace);
 
                 String imageUrl = node.path("firstimage").asText();
+                String sumNailUrl = node.path("firstimage2").asText();
                 if (imageUrl != null && !imageUrl.isEmpty()) {
                     LocalPlaceImage image = LocalPlaceImage.builder()
                         .localPlace(newPlace)
+                        .sumNailUrl(sumNailUrl)
                         .imageUrl(imageUrl)
                         .build();
                     localPlaceImageRepository.save(image);
                 }
-
                 return newPlace;
             });
+
+        List<LocalPlaceImage> images = localPlaceImageRepository.findByLocalPlace_PlaceId(
+            localPlace.getPlaceId());
+        String imageUrl = images.isEmpty() ? null : images.get(0).getImageUrl();
+        String sumNailUrl = images.isEmpty() ? null : images.get(0).getSumNailUrl();
+
+        return new LocalPlaceSearchResponse(
+            localPlace.getPlaceId(),
+            localPlace.getName(),
+            localPlace.getDescription(),
+            localPlace.getAddress(),
+            localPlace.getLatitude(),
+            localPlace.getLongitude(),
+            localPlace.getUserId(),
+            localPlace.getUserNickName(),
+            localPlace.getSource(),
+            localPlace.getKtoContentId(),
+            localPlace.getContentTypeId(),
+            localPlace.getCategory(),
+            imageUrl,
+            sumNailUrl
+        );
     }
 
 
@@ -223,11 +271,11 @@ public class LocalPlaceService {
     }
 
     @Transactional
-    public List<LocalPlaceResponse> findNearbyPlaces(double latitude, double longitude) {
+    public List<LocalPlaceSearchResponse> findNearbyPlaces(double latitude, double longitude) {
         // 1. KTO API를 통해 근처 장소 가져오기 (반경 1km)
         String responseJson = ktoFeignClient.searchByLocation(ktoServiceKey, longitude, latitude,
             1000, "json", "ETC", "treka");
-        List<LocalPlace> ktoNearbyPlaces = new ArrayList<>();
+        List<LocalPlaceSearchResponse> ktoNearbyPlaces = new ArrayList<>();
         try {
             JsonNode root = objectMapper.readTree(responseJson);
             JsonNode items = root.path("response").path("body").path("items").path("item");
@@ -245,12 +293,36 @@ public class LocalPlaceService {
         List<LocalPlace> dbNearbyPlaces = localPlaceRepository.findNearbyPlaces(latitude, longitude,
             1.0);
 
-        // 3. 두 리스트를 합치고 중복 제거
-        Set<LocalPlace> combinedPlaces = new HashSet<>(ktoNearbyPlaces);
-        combinedPlaces.addAll(dbNearbyPlaces);
+        List<LocalPlaceSearchResponse> dbNearbyPlaceResponses = dbNearbyPlaces.stream()
+            .map(place -> {
+                List<LocalPlaceImage> images = localPlaceImageRepository.findByLocalPlace_PlaceId(
+                    place.getPlaceId());
+                String imageUrl = images.isEmpty() ? null : images.get(0).getImageUrl();
+                String sumNailUrl = images.isEmpty() ? null : images.get(0).getSumNailUrl();
+                return new LocalPlaceSearchResponse(
+                    place.getPlaceId(),
+                    place.getName(),
+                    place.getDescription(),
+                    place.getAddress(),
+                    place.getLatitude(),
+                    place.getLongitude(),
+                    place.getUserId(),
+                    place.getUserNickName(),
+                    place.getSource(),
+                    place.getKtoContentId(),
+                    place.getContentTypeId(),
+                    place.getCategory(),
+                    imageUrl,
+                    sumNailUrl
+                );
+            })
+            .toList();
 
-        // 4. N+1 문제 해결 및 DTO 변환
-        return getPlaceDetails(new ArrayList<>(combinedPlaces));
+        // 3. 두 리스트를 합치고 중복 제거
+        Set<LocalPlaceSearchResponse> combinedPlaces = new HashSet<>(ktoNearbyPlaces);
+        combinedPlaces.addAll(dbNearbyPlaceResponses);
+
+        return new ArrayList<>(combinedPlaces);
     }
 
     private List<LocalPlaceResponse> getPlaceDetails(List<LocalPlace> places) {

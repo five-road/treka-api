@@ -22,7 +22,7 @@ public class LocalPlace {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, length = 500)
+    @Column(length = 3000)
     private String description;
 
     private String address;

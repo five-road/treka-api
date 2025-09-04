@@ -27,8 +27,9 @@ public class LocalPlaceImage {
     private String sumNailUrl;
 
     @Builder
-    public LocalPlaceImage(LocalPlace localPlace, String imageUrl) {
+    public LocalPlaceImage(LocalPlace localPlace, String imageUrl, String sumNailUrl) {
         this.localPlace = localPlace;
         this.imageUrl = imageUrl;
+        this.sumNailUrl = sumNailUrl;
     }
 }
