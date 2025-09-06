@@ -1,0 +1,43 @@
+# 워크플로우의 이름
+name: 🤖 Auto Branch Creator
+
+# 실행 조건: 'issues' 이벤트가 발생하고, 그 타입이 'opened'(생성)일 때 실행
+on:
+  issues:
+    types: [opened]
+
+# 실행할 작업들
+jobs:
+  create_branch_job:
+    # 실행 환경 지정
+    runs-on: ubuntu-latest
+    steps:
+      # 1. 이슈 정보에서 브랜치 이름 형식 만들기
+      - name: Format branch name
+        id: format_branch_name
+        # 이슈 제목을 소문자로 바꾸고, 공백 및 특수문자를 하이픈(-)으로 변경
+        # 최종 형식: 이슈번호-이슈제목
+        run: |
+          branch_name=$(echo "${{ github.event.issue.title }}" | iconv -t ascii//TRANSLIT | sed -r s/[^a-zA-Z0-9]+/-/g | sed -r s/^-+\|-+$//g | tr A-Z a-z)
+          echo "branch=feature/${{ github.event.issue.number }}-${branch_name}" >> $GITHUB_OUTPUT
+
+      # 2. 만든 브랜치 이름으로 실제 브랜치 생성
+      - name: Create branch
+        # git 저장소에 접근하기 위한 기본 액션
+        uses: actions/checkout@v4
+        with:
+          # 생성된 브랜치로 바로 체크아웃
+          create-branch: true
+          # 위 단계에서 만든 브랜치 이름을 사용
+          branch: ${{ steps.format_branch_name.outputs.branch }}
+      
+      # 3. 이슈에 브랜치가 생성되었음을 댓글로 알림
+      - name: Post comment to issue
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          # 댓글을 달 이슈 번호
+          issue-number: ${{ github.event.issue.number }}
+          # 댓글 내용
+          body: |
+            ✅ 이 이슈와 연결된 브랜치가 자동으로 생성되었습니다.
+            브랜치: `${{ steps.format_branch_name.outputs.branch }}`
