@@ -17,5 +17,6 @@ public record LocalPlaceSearchResponse (
     Long contentTypeId,
     PlaceCategory category,
     String imageUrl,
-    String sumNailUrl
+    String sumNailUrl,
+    PlaceCategory placeCategory
 ){}

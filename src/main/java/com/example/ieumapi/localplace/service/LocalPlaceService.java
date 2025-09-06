@@ -75,6 +75,11 @@ public class LocalPlaceService {
         return LocalPlaceResponse.from(localPlace, imageUrls, user.getNickName());
     }
 
+    /**
+     * KeyWord 탐색 기반
+     * @param keyword - "성산일출봉"
+     * @return - List<LocalPlaceSearchResponse>
+     */
     public List<LocalPlaceSearchResponse> searchLocalPlaces(String keyword) {
         // 1. KTO API 호출 및 데이터 처리
         List<LocalPlaceSearchResponse> ktoPlaces = getPlacesFromKto(keyword);
@@ -155,12 +160,12 @@ public class LocalPlaceService {
 
 
     @Transactional(readOnly = true)
-    public LocalPlaceResponse getPlace(Long placeId, String ktoContentId, PlaceCategory contentTypeId) {
+    public LocalPlaceResponse getPlace(Long placeId, String ktoContentId, PlaceCategory category) {
 
         LocalPlace localPlace = localPlaceRepository.findById(placeId)
             .orElseThrow(() -> new LocalPlaceException(LocalPlaceErrorCode.LOCAL_PLACE_NOT_FOUND));
 
-        if(ktoContentId != null && contentTypeId != null) {
+        if(ktoContentId != null && category != null) {
             String reponseDetailCommonJson = ktoFeignClient.getLocalPlaceDetailCommon(
                 ktoServiceKey,
                 "json",
@@ -175,7 +180,7 @@ public class LocalPlaceService {
                 "ETC",
                 "treka",
                 ktoContentId,
-                String.valueOf(contentTypeId.getCode())
+                String.valueOf(category.getCode())
             );
 
             String overview = "";
@@ -191,7 +196,7 @@ public class LocalPlaceService {
 
                     String businessHour = "";
                     String parking = "";
-                    switch (contentTypeId.getCode()){
+                    switch (category.getCode()){
                         case 39: // 음식점
                             businessHour = introItems.get(0).path("opentimefood").asText("");
                             parking = introItems.get(0).path("parkingfood").asText("");
@@ -328,7 +333,8 @@ public class LocalPlaceService {
             place.getContentTypeId(),
             place.getCategory(),
             imageUrl,
-            sumNailUrl
+            sumNailUrl,
+            place.getCategory()
         );
     }
 

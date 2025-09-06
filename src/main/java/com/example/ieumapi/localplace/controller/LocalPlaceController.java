@@ -42,9 +42,9 @@ public class LocalPlaceController {
     public ResponseEntity<LocalPlaceResponse> getPlace(
         @PathVariable("id") Long placeId,
         @RequestParam(required = false) String ktoContentId,
-        @RequestParam(required = false) PlaceCategory contentTypeId
+        @RequestParam(required = false) PlaceCategory category
         ) {
-        return ResponseEntity.ok(localPlaceService.getPlace(placeId, ktoContentId, contentTypeId));
+        return ResponseEntity.ok(localPlaceService.getPlace(placeId, ktoContentId, category));
     }
 
     @Operation(summary = "로컬 장소 정보 수정")
