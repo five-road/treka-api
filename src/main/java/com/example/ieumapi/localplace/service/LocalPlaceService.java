@@ -84,28 +84,7 @@ public class LocalPlaceService {
             keyword, Source.USER);
 
         List<LocalPlaceSearchResponse> userPlaceResponses = userPlaces.stream()
-            .map(place -> {
-                List<LocalPlaceImage> images = localPlaceImageRepository.findByLocalPlace_PlaceId(
-                    place.getPlaceId());
-                String imageUrl = images.isEmpty() ? null : images.get(0).getImageUrl();
-                String sumNailUrl = images.isEmpty() ? null : images.get(0).getSumNailUrl();
-                return new LocalPlaceSearchResponse(
-                    place.getPlaceId(),
-                    place.getName(),
-                    place.getDescription(),
-                    place.getAddress(),
-                    place.getLatitude(),
-                    place.getLongitude(),
-                    place.getUserId(),
-                    place.getUserNickName(),
-                    place.getSource(),
-                    place.getKtoContentId(),
-                    place.getContentTypeId(),
-                    place.getCategory(),
-                    imageUrl,
-                    sumNailUrl
-                );
-            })
+            .map(this::convertPlaceToSearchResponse)
             .toList();
 
         // 3. 결과 병합 및 중복 제거
@@ -142,29 +121,9 @@ public class LocalPlaceService {
 
         LocalPlace localPlace = localPlaceRepository.findByKtoContentId(ktoContentId)
             .orElseGet(() -> {
-                String reponseDetailJson = ktoFeignClient.getLocalPlaceDetail(
-                    ktoServiceKey,
-                    "json",
-                    "ETC",
-                    "treka",
-                    ktoContentId
-                );
 
-                String overview = "";
-                try {
-                    JsonNode root = objectMapper.readTree(reponseDetailJson);
-                    JsonNode items = root.path("response").path("body").path("items").path("item");
-
-                    if (items.isArray() && items.size() > 0) {
-                        overview = items.get(0).path("overview").asText("");
-                    }
-
-                } catch (JsonProcessingException e) {
-                    throw new RuntimeException(e);
-                }
                 LocalPlace newPlace = LocalPlace.builder()
                     .name(node.path("title").asText())
-                    .description(overview)
                     .address(node.path("addr1").asText() + node.path("addr2").asText())
                     .latitude(node.path("mapy").asDouble())
                     .longitude(node.path("mapx").asDouble())
@@ -176,7 +135,7 @@ public class LocalPlaceService {
                     .category(PlaceCategory.fromCode(contentTypeId))
                     .build();
 
-                localPlaceRepository.save(newPlace);
+                LocalPlace savedPlace = localPlaceRepository.save(newPlace);
 
                 String imageUrl = node.path("firstimage").asText();
                 String sumNailUrl = node.path("firstimage2").asText();
@@ -188,41 +147,87 @@ public class LocalPlaceService {
                         .build();
                     localPlaceImageRepository.save(image);
                 }
-                return newPlace;
+                return savedPlace;
             });
 
-        List<LocalPlaceImage> images = localPlaceImageRepository.findByLocalPlace_PlaceId(
-            localPlace.getPlaceId());
-        String imageUrl = images.isEmpty() ? null : images.get(0).getImageUrl();
-        String sumNailUrl = images.isEmpty() ? null : images.get(0).getSumNailUrl();
-
-        return new LocalPlaceSearchResponse(
-            localPlace.getPlaceId(),
-            localPlace.getName(),
-            localPlace.getDescription(),
-            localPlace.getAddress(),
-            localPlace.getLatitude(),
-            localPlace.getLongitude(),
-            localPlace.getUserId(),
-            localPlace.getUserNickName(),
-            localPlace.getSource(),
-            localPlace.getKtoContentId(),
-            localPlace.getContentTypeId(),
-            localPlace.getCategory(),
-            imageUrl,
-            sumNailUrl
-        );
+        return convertPlaceToSearchResponse(localPlace);
     }
 
 
     @Transactional(readOnly = true)
-    public LocalPlaceResponse getPlace(Long placeId) {
+    public LocalPlaceResponse getPlace(Long placeId, String ktoContentId, PlaceCategory contentTypeId) {
+
         LocalPlace localPlace = localPlaceRepository.findById(placeId)
             .orElseThrow(() -> new LocalPlaceException(LocalPlaceErrorCode.LOCAL_PLACE_NOT_FOUND));
+
+        if(ktoContentId != null && contentTypeId != null) {
+            String reponseDetailCommonJson = ktoFeignClient.getLocalPlaceDetailCommon(
+                ktoServiceKey,
+                "json",
+                "ETC",
+                "treka",
+                ktoContentId
+            );
+
+            String reponseDetailIntroJson = ktoFeignClient.getLocalPlaceDetailIntro(
+                ktoServiceKey,
+                "json",
+                "ETC",
+                "treka",
+                ktoContentId,
+                String.valueOf(contentTypeId.getCode())
+            );
+
+            String overview = "";
+            try {
+                JsonNode commonRoot = objectMapper.readTree(reponseDetailCommonJson);
+                JsonNode commonItems = commonRoot.path("response").path("body").path("items").path("item");
+
+                JsonNode introRoot = objectMapper.readTree(reponseDetailIntroJson);
+                JsonNode introItems = introRoot.path("response").path("body").path("items").path("item");
+
+                if (commonItems.isArray() && commonItems.size() > 0) {
+                    overview = commonItems.get(0).path("overview").asText("");
+
+                    String businessHour = "";
+                    String parking = "";
+                    switch (contentTypeId.getCode()){
+                        case 39: // 음식점
+                            businessHour = introItems.get(0).path("opentimefood").asText("");
+                            parking = introItems.get(0).path("parkingfood").asText("");
+                            break;
+                        case 12: // 관광지
+                            businessHour = introItems.get(0).path("opendate").asText("");
+                            parking = introItems.get(0).path("parking").asText("");
+                            break;
+                        case 38: //쇼핑
+                            businessHour = introItems.get(0).path("opentime").asText("");
+                            parking = introItems.get(0).path("parkingshopping").asText("");
+                            break;
+                        case 32: //숙박
+                            parking = introItems.get(0).path("parkinglodging")
+                                .asText("");
+                            String checkintime = introItems.get(0).path("checkintime").asText("");
+                            String checkouttime = introItems.get(0).path("checkouttime").asText("");
+                            businessHour = "checkInTime : " + checkintime + "checkOutTime : " + checkouttime;
+                    }
+
+                    localPlace.updateBusinessHours(businessHour);
+                    localPlace.updateDescription(overview);
+                    localPlace.updateParking(parking);
+                }
+
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
         List<String> imageUrls = localPlaceImageRepository.findByLocalPlace_PlaceId(placeId)
             .stream()
             .map(LocalPlaceImage::getImageUrl)
             .toList();
+
+
         return LocalPlaceResponse.from(localPlace, imageUrls, localPlace.getUserNickName());
     }
 
@@ -294,28 +299,7 @@ public class LocalPlaceService {
             1.0);
 
         List<LocalPlaceSearchResponse> dbNearbyPlaceResponses = dbNearbyPlaces.stream()
-            .map(place -> {
-                List<LocalPlaceImage> images = localPlaceImageRepository.findByLocalPlace_PlaceId(
-                    place.getPlaceId());
-                String imageUrl = images.isEmpty() ? null : images.get(0).getImageUrl();
-                String sumNailUrl = images.isEmpty() ? null : images.get(0).getSumNailUrl();
-                return new LocalPlaceSearchResponse(
-                    place.getPlaceId(),
-                    place.getName(),
-                    place.getDescription(),
-                    place.getAddress(),
-                    place.getLatitude(),
-                    place.getLongitude(),
-                    place.getUserId(),
-                    place.getUserNickName(),
-                    place.getSource(),
-                    place.getKtoContentId(),
-                    place.getContentTypeId(),
-                    place.getCategory(),
-                    imageUrl,
-                    sumNailUrl
-                );
-            })
+            .map(this::convertPlaceToSearchResponse)
             .toList();
 
         // 3. 두 리스트를 합치고 중복 제거
@@ -323,6 +307,29 @@ public class LocalPlaceService {
         combinedPlaces.addAll(dbNearbyPlaceResponses);
 
         return new ArrayList<>(combinedPlaces);
+    }
+
+    private LocalPlaceSearchResponse convertPlaceToSearchResponse(LocalPlace place) {
+        List<LocalPlaceImage> images = localPlaceImageRepository.findByLocalPlace_PlaceId(
+            place.getPlaceId());
+        String imageUrl = images.isEmpty() ? null : images.get(0).getImageUrl();
+        String sumNailUrl = images.isEmpty() ? null : images.get(0).getSumNailUrl();
+
+        return new LocalPlaceSearchResponse(
+            String.valueOf(place.getPlaceId()),
+            place.getName(),
+            place.getAddress(),
+            place.getLatitude(),
+            place.getLongitude(),
+            place.getUserId(),
+            place.getUserNickName(),
+            place.getSource(),
+            place.getKtoContentId(),
+            place.getContentTypeId(),
+            place.getCategory(),
+            imageUrl,
+            sumNailUrl
+        );
     }
 
     private List<LocalPlaceResponse> getPlaceDetails(List<LocalPlace> places) {

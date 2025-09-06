@@ -29,6 +29,7 @@ import static com.example.ieumapi.user.domain.UserRole.ROLE_USER;
 @Service
 @RequiredArgsConstructor
 public class UserService {
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
@@ -39,37 +40,42 @@ public class UserService {
             throw new UserException(USER_DUPLICATED);
         }
         User user = User.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .name(request.getName())
-                .nickName(request.getNickName())
-                .role(ROLE_USER)
-                .isActive(true)
-                .build();
+            .email(request.getEmail())
+            .password(passwordEncoder.encode(request.getPassword()))
+            .name(request.getName())
+            .nickName(request.getNickName())
+            .role(ROLE_USER)
+            .isActive(true)
+            .build();
         userRepository.save(user);
     }
 
     public UserLoginResponse login(UserLoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UserException(INVALID_CREDENTIALS));
+            .orElseThrow(() -> new UserException(INVALID_CREDENTIALS));
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new UserException(INVALID_CREDENTIALS);
         }
         String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
-        return UserLoginResponse.builder().accessToken(token).build();
+        return UserLoginResponse.builder().accessToken(token)
+            .userId(user.getUserId())
+            .email(user.getEmail())
+            .name(user.getName())
+            .nickName(user.getNickName())
+            .build();
     }
 
     public CursorPageResponse<UserSearchResultDto> searchUsersCursor(
-            String query,
-            int size,
-            String cursor
+        String query,
+        int size,
+        String cursor
     ) {
         long cursorId = decodeCursor(cursor);
         Pageable pageable = PageRequest.of(0, size + 1, Sort.by(Sort.Direction.ASC, "userId"));
         List<User> users = userRepository
-                .findByNickNameContainingIgnoreCaseOrNameContainingIgnoreCaseAndUserIdGreaterThanOrderByUserIdAsc(
-                        query, query, cursorId, pageable
-                );
+            .findByNickNameContainingIgnoreCaseOrNameContainingIgnoreCaseAndUserIdGreaterThanOrderByUserIdAsc(
+                query, query, cursorId, pageable
+            );
 
         boolean hasNext = users.size() > size;
         if (hasNext) {
@@ -77,21 +83,21 @@ public class UserService {
         }
 
         List<UserSearchResultDto> data = users.stream()
-                .map(u -> new UserSearchResultDto(
-                        u.getUserId(),
-                        u.getNickName(),
-                        u.getName(),
-                        u.getImageUrl(),
-                        u.getSnsType(),
-                        u.isGuest()
-                ))
-                .collect(Collectors.toList());
+            .map(u -> new UserSearchResultDto(
+                u.getUserId(),
+                u.getNickName(),
+                u.getName(),
+                u.getImageUrl(),
+                u.getSnsType(),
+                u.isGuest()
+            ))
+            .collect(Collectors.toList());
 
         String nextCursor = null;
         if (hasNext) {
             Long lastId = users.get(users.size() - 1).getUserId();
             nextCursor = Base64.getEncoder()
-                    .encodeToString(String.valueOf(lastId).getBytes(StandardCharsets.UTF_8));
+                .encodeToString(String.valueOf(lastId).getBytes(StandardCharsets.UTF_8));
         }
 
         return new CursorPageResponse<>(data, nextCursor, hasNext);
@@ -101,21 +107,21 @@ public class UserService {
     public UserInfoResponse getMyInfo() {
         Long currentUserId = SecurityUtils.getCurrentUserId();
         User user = userRepository.findByUserId(currentUserId)
-                .orElseThrow(() -> new UserException(USER_NOT_FOUND));
+            .orElseThrow(() -> new UserException(USER_NOT_FOUND));
 
         return UserInfoResponse.builder()
-                .userId(user.getUserId())
-                .nickname(user.getNickName())
-                .name(user.getName())
-                .email(user.getEmail())
-                .build();
+            .userId(user.getUserId())
+            .nickname(user.getNickName())
+            .name(user.getName())
+            .email(user.getEmail())
+            .build();
     }
 
     @Transactional
     public void deleteUser() {
         Long currentUserId = SecurityUtils.getCurrentUserId();
         User user = userRepository.findByUserId(currentUserId)
-                .orElseThrow(() -> new UserException(USER_NOT_FOUND));
+            .orElseThrow(() -> new UserException(USER_NOT_FOUND));
         user.deactivate();
         userRepository.save(user);
     }

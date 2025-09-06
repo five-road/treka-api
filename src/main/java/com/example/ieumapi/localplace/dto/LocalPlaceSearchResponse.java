@@ -5,9 +5,8 @@ import com.example.ieumapi.localplace.domain.Source;
 
 
 public record LocalPlaceSearchResponse (
-    Long placeId,
+    String placeId,
     String name,
-    String description,
     String address,
     Double latitude,
     Double longitude,

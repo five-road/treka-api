@@ -29,11 +29,21 @@ public interface KtoFeignClient {
     );
 
     @GetMapping("/detailCommon2")
-    String getLocalPlaceDetail(
+    String getLocalPlaceDetailCommon(
         @RequestParam("serviceKey") String serviceKey,
         @RequestParam("_type") String type,
         @RequestParam("MobileOS") String mobileOS,
         @RequestParam("MobileApp") String mobileApp,
         @RequestParam("contentId") String contentId
+    );
+
+    @GetMapping("/detailIntro2")
+    String getLocalPlaceDetailIntro(
+        @RequestParam("serviceKey") String serviceKey,
+        @RequestParam("_type") String type,
+        @RequestParam("MobileOS") String mobileOS,
+        @RequestParam("MobileApp") String mobileApp,
+        @RequestParam("contentId") String contentId,
+        @RequestParam("contentTypeId") String contentTypeId
     );
 }

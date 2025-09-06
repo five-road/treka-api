@@ -53,6 +53,10 @@ public class LocalPlace {
     @Column(nullable = false)
     private PlaceCategory category;
 
+    private String parking;
+
+    private String businessHours;
+
 
     @Builder
     public LocalPlace(String name,
@@ -65,7 +69,9 @@ public class LocalPlace {
         Source source,
         String ktoContentId,
         Long contentTypeId,
-        PlaceCategory category){
+        PlaceCategory category,
+        String parking,
+        String businessHours){
         this.name = name;
         this.description = description;
         this.address = address;
@@ -77,6 +83,8 @@ public class LocalPlace {
         this.ktoContentId = ktoContentId;
         this.contentTypeId = contentTypeId;;
         this.category = category;
+        this.parking = parking;
+        this.businessHours = businessHours;
     }
 
     public void update(String name, String description, String address, PlaceCategory category) {
@@ -84,5 +92,17 @@ public class LocalPlace {
         this.description = description;
         this.address = address;
         this.category = category;
+    }
+
+    public void updateDescription(String description){
+        this.description = description;
+    }
+
+    public void updateBusinessHours(String businessHours){
+        this.businessHours = businessHours;
+    }
+
+    public void updateParking(String parking){
+        this.parking = parking;
     }
 }
