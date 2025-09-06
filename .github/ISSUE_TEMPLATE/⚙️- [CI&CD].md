@@ -1,5 +1,5 @@
 ---
-name: "⚙️ CI/CD 개선 요청"
+name: "⚙️ CI/CD 요청"
 about: "빌드, 테스트, 배포 등 CI/CD 파이프라인 관련 작업을 제안합니다."
 title: "⚙️ CI: [개선할 CI/CD 작업에 대한 요약]"
 labels: "ci/cd, infrastructure"
