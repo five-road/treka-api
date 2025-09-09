@@ -10,6 +10,8 @@ on:
 jobs:
   create_branch_job:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write # 이슈에 댓글을 쓸 수 있는 권한 부여
     steps:
       # 1. 이슈의 라벨을 기반으로 브랜치 접두사(prefix) 결정
       - name: Get branch prefix from label
