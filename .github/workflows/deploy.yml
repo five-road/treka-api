@@ -1,0 +1,87 @@
+name: CI/CD to Raspberry Pi for odo
+
+on:
+  push:
+    branches: [ "dev" ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew clean build
+
+      - name: Docker Hub 로그인
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build Docker Image
+        run: docker build --platform linux/arm64/v8 -t ${{ secrets.DOCKER_REPO }}:0.0.1 .
+
+      - name: Push Docker Image
+        run: docker push ${{ secrets.DOCKER_REPO }}:0.0.1
+      
+      # rasberry pi connect and docker login
+      - name: Docker Login on Raspberry Pi
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Stop & Remove old container
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            docker stop odo || true
+            docker rm odo || true
+            sudo rm odo.log || true
+
+      - name: Pull latest image and run container
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            docker pull ${{ secrets.DOCKER_REPO }}:0.0.1
+            docker run -d --name odo \
+              --network=host \
+              -e SPRING_DATASOURCE_URL=${{ secrets.DB_URL }} \
+              -e SPRING_DATASOURCE_USERNAME=${{ secrets.DB_USERNAME }} \
+              -e SPRING_DATASOURCE_PASSWORD=${{ secrets.DB_PASSWORD }} \
+              -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+              -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
+              -e WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }} \
+              -e TOUR_API_KEY=${{ secrets.TOUR_API_KEY }} \
+              ${{ secrets.DOCKER_REPO }}:0.0.1
+            docker logs -f odo &> odo.log &
+
+      - name: Prune unused Docker images
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: docker image prune -f

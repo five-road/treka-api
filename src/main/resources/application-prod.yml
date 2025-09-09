@@ -1,0 +1,38 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
+secrets:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration : ${JWT_EXPIRATION}
+
+file:
+  storage:
+    url: http://localhost:8081/image
+
+api:
+  kma:
+    base-url: http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst
+    service-key: ${WEATHER_API_KEY}
+  kto:
+    service-key: ${TOUR_API_KEY}
+
+
+
+#logging:
+#  level:
+#    root: INFO

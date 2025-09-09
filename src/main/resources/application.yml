@@ -1,0 +1,16 @@
+spring:
+  profiles:
+    active: prod  # 또는 prod
+
+    # 공통 속성 (URL, username 등은 각 프로파일에서 정의)
+
+server:
+  port: 8080
+
+springdoc:
+  packages-to-scan: com.example.ieumapi
+  paths-to-match: /api/**
+  swagger-ui:
+    disable-swagger-default-url: true
+
+
