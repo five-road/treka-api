@@ -137,4 +137,9 @@ public class UserService {
             throw new UserException(INVALID_CURSOR);
         }
     }
+
+    public User getUserInfo(long userId){
+       return userRepository.findByUserId(userId)
+            .orElseThrow(() -> new UserException(INVALID_CREDENTIALS));
+    }
 }

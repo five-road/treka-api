@@ -10,6 +10,7 @@ import com.example.ieumapi.group.service.GroupService;
 import com.example.ieumapi.plan.domain.Plan;
 import com.example.ieumapi.plan.repository.PlanRepository;
 import com.example.ieumapi.user.domain.User;
+import com.example.ieumapi.user.service.UserService;
 import com.example.ieumapi.widy.domain.Widy;
 import com.example.ieumapi.widy.domain.WidyImage;
 import com.example.ieumapi.widy.domain.WidyScope;
@@ -55,6 +56,7 @@ public class WidyService {
     private final FileStorageClient fileStorageClient;
     private final PlanRepository planRepository;
     private final GroupRepository groupRepository;
+    private final UserService userService;
 
     public WidyResponseDto createWidy(WidyCreateRequestDto requestDto, List<MultipartFile> images) {
         // Scope validation
@@ -128,17 +130,20 @@ public class WidyService {
             .orElseThrow(() -> new WidyException(WidyErrorCode.WIDY_NOT_FOUND));
 
         User currentUser = SecurityUtils.getCurrentUser();
+        User widyUser = userService.getUserInfo(widy.getUserId());
 
         // Access control based on scope
         if (widy.getScope() == WidyScope.PRIVATE && !widy.getUserId().equals(currentUser.getUserId())) {
             throw new WidyException(WidyErrorCode.FORBIDDEN);
         }
+
+
         if (widy.getScope() == WidyScope.GROUP && !groupService.getMyGroups().contains(
             widy.getGroupId())) { // Assuming getGroupIdForUser is a method that retrieves the group ID for a user
             throw new WidyException(WidyErrorCode.FORBIDDEN);
         }
 
-        return mapToWidyResponseDto(widy, currentUser.getEmail());
+        return mapToWidyResponseDto(widy, widyUser.getEmail());
     }
 
     @Transactional(readOnly = true)
