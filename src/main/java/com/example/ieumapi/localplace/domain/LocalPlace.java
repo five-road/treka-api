@@ -47,7 +47,7 @@ public class LocalPlace {
     private String ktoContentId; // 한국관광공사 contentId, nullable
 
     @Column(nullable = false)
-    private Long contentTypeId;
+    private int contentTypeId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -68,7 +68,7 @@ public class LocalPlace {
         String userNickName,
         Source source,
         String ktoContentId,
-        Long contentTypeId,
+        int contentTypeId,
         PlaceCategory category,
         String parking,
         String businessHours){

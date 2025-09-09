@@ -64,8 +64,11 @@ public class LocalPlaceService {
             .userId(user.getUserId())
             .userNickName(user.getNickName())
             .source(Source.USER)
+            .contentTypeId(request.getCategory().getCode())
             .ktoContentId(null)
             .category(request.getCategory())
+            .parking(request.getParking())
+            .businessHours(request.getBusinessHours())
             .build();
 
         localPlaceRepository.save(localPlace);
@@ -122,7 +125,7 @@ public class LocalPlaceService {
 
     private LocalPlaceSearchResponse createOrUpdatePlaceFromKtoNode(JsonNode node) {
         String ktoContentId = node.path("contentid").asText();
-        long contentTypeId = node.path("contenttypeid").asLong();
+        int contentTypeId = node.path("contenttypeid").asInt();
 
         LocalPlace localPlace = localPlaceRepository.findByKtoContentId(ktoContentId)
             .orElseGet(() -> {
