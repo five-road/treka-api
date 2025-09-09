@@ -31,8 +31,8 @@
   description: 성능 개선
   color: 'fbca04'
 
-- name: '🎨 design'
-  description: UI/UX, 스타일 관련
+- name: '⚙️ CI/CD'
+  description: CI/CD 파이프라인 관련 작업
   color: 'e99695'
 
 - name: '🤷 wontfix'

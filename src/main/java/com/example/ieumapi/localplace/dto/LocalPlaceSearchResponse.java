@@ -14,7 +14,7 @@ public record LocalPlaceSearchResponse (
     String userNickName,
     Source source, // 데이터 출처 (USER, KTO)
     String ktoContentId, // 한국관광공사 contentId, nullable
-    Long contentTypeId,
+    int contentTypeId,
     PlaceCategory category,
     String imageUrl,
     String sumNailUrl,
