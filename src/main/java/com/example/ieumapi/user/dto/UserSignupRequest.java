@@ -16,7 +16,7 @@ public class UserSignupRequest {
     @Schema(description = "사용자 이메일", example = "test@example.com")
     private String email;
 
-    @NotBlank(message = "비밀번호는 필수입��다.")
+    @NotBlank(message = "비밀번호는 필수입니다.")
     @Schema(description = "비밀번호", example = "1234")
     private String password;
 
