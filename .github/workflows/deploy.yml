@@ -74,7 +74,7 @@ jobs:
               -e JWT_EXPIRATION=${{ secrets.JWT_EXPIRATION }} \
               -e WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }} \
               -e TOUR_API_KEY=${{ secrets.TOUR_API_KEY }} \
-              -e KAKAO_CLIENT_ID=${{sercrets.KAKAO_CLIENT_ID}} \
+              -e KAKAO_CLIENT_ID=${{secrets.KAKAO_CLIENT_ID}} \
               -e GOOGLE_CLIENT_ID=${{secrets.GOOGLE_CLIENT_ID}} \
               -e GOOGLE_SECRET_ID=${{secrets.GOOGLE_SECRET_ID}} \
               ${{ secrets.DOCKER_REPO }}:0.0.1

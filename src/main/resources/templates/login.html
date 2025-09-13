@@ -130,7 +130,7 @@
     const kakaoLoginBtn = document.getElementById('kakao-login-btn');
     if (kakaoLoginBtn) {
         kakaoLoginBtn.addEventListener('click', () => {
-            const REST_API_KEY = KAKAO_CLIENT_ID || 'YOUR_FALLBACK_KAKAO_KEY';
+            const REST_API_KEY = KAKAO_CLIENT_ID;
             const REDIRECT_URI = 'http://localhost:8080/auth/kakao/callback';
             const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${REST_API_KEY}&redirect_uri=${REDIRECT_URI}&response_type=code&state=kakao`;
             window.location.href = kakaoAuthUrl;
@@ -141,11 +141,11 @@
     const googleLoginBtn = document.getElementById('google-login-btn');
     if (googleLoginBtn) {
         googleLoginBtn.addEventListener('click', () => {
-            const CLIENT_ID = GOOGLE_CLIENT_ID || 'YOUR_FALLBACK_GOOGLE_KEY';
+            const CLIENT_ID = GOOGLE_CLIENT_ID;
             // 중요: 이 URI는 Google Cloud Console에 등록된 리디렉션 URI와 정확히 일치해야 합니다.
             // 127.0.0.1을 사용하는 이유는 Google의 최신 보안 정책 때문입니다.
             const REDIRECT_URI = 'http://localhost:8080/auth/google/callback';
-            const scope = 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
+            const scope = 'openid email profile';
             const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=${scope}&state=google`;
             window.location.href = googleAuthUrl;
         });
