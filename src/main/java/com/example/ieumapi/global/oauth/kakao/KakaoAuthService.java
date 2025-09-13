@@ -22,7 +22,7 @@ public class KakaoAuthService {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
 
-    @Value(value = "${oauth2.kakao.client-id}")
+    @Value("${oauth2.kakao.client-id}")
     private String clientId;
     @Value("${oauth2.kakao.redirect-uri}")
     private String redirectUrl;
