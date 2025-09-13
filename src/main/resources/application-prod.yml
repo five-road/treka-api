@@ -22,7 +22,7 @@ secrets:
 
 oauth2:
   kakao:
-    client-id: ${KAKAO_CLIIENT_ID}
+    client-id: ${KAKAO_CLIENT_ID}
     redirect-uri: https://xn--hq1bm8jm9l/auth/kakao/callback
   google:
     client-id: ${GOOGLE_CLIENT_ID}
