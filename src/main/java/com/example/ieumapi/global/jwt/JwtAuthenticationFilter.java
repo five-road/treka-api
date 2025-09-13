@@ -29,7 +29,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         // 필터를 거치지 않을 URL 경로 설정
-        List<String> excludePath = Arrays.asList("/api/v1/users/signup", "/api/v1/users/login", "/login", "/my-page/delete-account");
+        List<String> excludePath = Arrays.asList(
+            "/api/v1/users/login",
+            "/api/v1/users/signup",
+            "/oauth2/authorization/**",
+            "/api/v1/auth/google/code",
+            "/api/v1/auth/kakao/code",
+            "/auth/kakao/callback",
+            "/auth/google/callback",
+            "/login",
+            "/my-page/delete-account",
+            "/css/**",
+            "/js/**",
+            "/swagger-ui/**",
+            "/api-docs/**",
+            "/v3/api-docs/**",
+            "/api-docs/swagger-config",
+            "/api/v1/local-places/**"
+        );
         String path = request.getRequestURI();
         return excludePath.stream().anyMatch(path::startsWith);
     }
