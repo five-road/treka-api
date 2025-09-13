@@ -23,11 +23,12 @@ secrets:
 oauth2:
   kakao:
     client-id: ${KAKAO_CLIENT_ID}
-    redirect-uri: https://xn--hq1bm8jm9l/auth/kakao/callback
+    redirect-uri: http://localhost:8080/auth/kakao/callback
+
   google:
     client-id: ${GOOGLE_CLIENT_ID}
     client-secret: ${GOOGLE_SECRET_ID}
-    redirect-uri: https://xn--hq1bm8jm9l/auth/google/callback
+    redirect-uri: http://localhost:8080/auth/google/callback
 
 file:
   storage:
